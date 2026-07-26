@@ -10,7 +10,13 @@ browser.
   item. Exhaustive search over every combine tree (item + up to 7 books), with
   prior-work penalties, book/item multipliers, conflict handling, and the 40-level
   "Too Expensive" cap. Enchantment combining only; repairs and renames are out of
-  scope.
+  scope. Also shows the resulting item's real combat/defense stats — material
+  tiers (wood through netherite for tools/weapons, leather through netherite for
+  armor), attack damage/speed, armor/toughness/knockback resistance, and
+  durability, folding in the enchantments that have a real, unconditional numeric
+  effect (Sharpness, Unbreaking) and calling out the rest (Smite, Protection,
+  Feather Falling, etc.) as separate labeled, conditional modifiers rather than
+  forcing them into a misleading combined number.
 - **Brewing Planner** — builds shopping lists of potions (including splash,
   lingering, and tipped arrows), pools bottles across all targets into shared brew
   cycles, and outputs total cycles, elapsed time, blaze-powder fuel, a consolidated
@@ -18,13 +24,14 @@ browser.
   interaction; potion durations shown are display-only flavor.
 
 Each module's engine is an independent pure-function namespace (`AnvilEngine`,
-`BrewEngine`); they share only the CSS theme and generic UI helpers.
+`GearEngine`, `BrewEngine`); they share only the CSS theme and generic UI
+helpers.
 
 ## Self-tests
 
-`run_self_tests()` runs on page load, executes both suites (anvil T1–T5 and
-brewing B1–B5), and `console.table`s all results. The footer shows a pass/fail
-badge. Headless run:
+`run_self_tests()` runs on page load, executes all three suites (anvil T1–T5,
+gear W1–W8, and brewing B1–B5), and `console.table`s all results. The footer
+shows a pass/fail badge. Headless run:
 
 ```sh
 node -e "const m=require('fs').readFileSync('index.html','utf8').match(/<script>\n([\s\S]*?)<\/script>/);

@@ -35,6 +35,7 @@
   --shadow: 5px 5px 0 rgba(0,0,0,.45);
 }
 *{box-sizing:border-box}
+[hidden]{display:none !important}
 html{scrollbar-gutter:stable}
 body{
   margin:0; min-height:100vh;
@@ -276,6 +277,9 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
             <img id="an-item-icon" class="icon-preview" alt="">
           </div>
         </label>
+        <label class="f" id="an-material-wrap"><span class="lab">Material</span>
+          <select id="an-material"></select>
+        </label>
         <label class="f"><span class="lab">Prior anvil uses on the item (work penalty)</span>
           <input id="an-uses" type="number" min="0" max="8" step="1" value="0">
         </label>
@@ -299,6 +303,10 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
       <div class="card" aria-live="polite">
         <h2>Cheapest combine order</h2>
         <div id="an-out"></div>
+      </div>
+      <div class="card" aria-live="polite" id="an-stats-card">
+        <h2>Resulting item stats</h2>
+        <div id="an-stats-out"></div>
       </div>
     </div>
   </div>
@@ -571,6 +579,219 @@ const AnvilEngine = (() => {
 
   return Object.freeze({ITEMS, ENCH, EXCL, TOO_EXPENSIVE,
     pwp, applies, combine, optimize, sequentialTotal, unit, book, item});
+})();
+
+/* =====================================================================
+ *  GEAR ENGINE — independent pure-function namespace.
+ *  Java Edition 1.21.x real combat/defense stats: material tiers for
+ *  weapons/tools/armor, plus a bounded, explicit set of enchantment
+ *  modifiers folded on top. Takes AnvilEngine's item ids and an
+ *  enchantment map as plain inputs — no reference to AnvilEngine's
+ *  internals, so this stays fully independent (AnvilEngine.combine()/
+ *  optimize() are untouched; material never affects enchant cost).
+ *  Never fabricates a number vanilla doesn't have (e.g. no melee attack
+ *  damage for bow/crossbow — see FIXED_STATS notes).
+ * ===================================================================== */
+const GearEngine = (() => {
+  const RN = ['0','I','II','III','IV','V'];   // max modeled enchant level here is 5
+
+  const TOOL_TIERS = ['wood','stone','iron','gold','diamond','netherite'];
+  const ARMOR_TIERS = ['leather','chainmail','iron','gold','diamond','netherite'];
+  const TIERED_TOOLS = ['sword','axe','pickaxe','shovel','hoe'];
+  const TIERED_ARMOR = ['helmet','chestplate','leggings','boots'];
+
+  // vanilla's real naming quirk: gold-tier items are "Golden X", not "Gold X".
+  const MATERIAL_NAME = {wood:'Wood', stone:'Stone', iron:'Iron', gold:'Golden',
+    diamond:'Diamond', netherite:'Netherite', leather:'Leather', chainmail:'Chainmail'};
+  const ICON_MATERIAL_PREFIX = {...Object.fromEntries(TOOL_TIERS.map(m => [m, m])), gold:'golden'};
+
+  const TOOL_DURABILITY = {wood:59, stone:131, iron:250, gold:32, diamond:1561, netherite:2031};
+
+  // {itemId: {material: [damage, attacksPerSecond]}}
+  const TOOL_COMBAT = {
+    sword:   {wood:[4,1.6],   stone:[5,1.6],   iron:[6,1.6],   gold:[4,1.6],   diamond:[7,1.6],   netherite:[8,1.6]},
+    axe:     {wood:[7,0.8],   stone:[9,0.8],   iron:[9,0.9],   gold:[7,1.0],   diamond:[9,1.0],   netherite:[10,1.0]},
+    pickaxe: {wood:[2,1.2],   stone:[3,1.2],   iron:[4,1.2],   gold:[2,1.2],   diamond:[5,1.2],   netherite:[6,1.2]},
+    shovel:  {wood:[2.5,1.0], stone:[3.5,1.0], iron:[4.5,1.0], gold:[2.5,1.0], diamond:[5.5,1.0], netherite:[6.5,1.0]},
+    hoe:     {wood:[1,1.0],   stone:[1,2.0],   iron:[1,3.0],   gold:[1,1.0],   diamond:[1,4.0],   netherite:[1,4.0]},
+  };
+
+  // {material: {slot: [armor, toughness, knockbackResistance]}}
+  const ARMOR_DEFENSE = {
+    leather:   {helmet:[1,0,0],   chestplate:[3,0,0],   leggings:[2,0,0],   boots:[1,0,0]},
+    chainmail: {helmet:[2,0,0],   chestplate:[5,0,0],   leggings:[4,0,0],   boots:[1,0,0]},
+    iron:      {helmet:[2,0,0],   chestplate:[6,0,0],   leggings:[5,0,0],   boots:[2,0,0]},
+    gold:      {helmet:[2,0,0],   chestplate:[5,0,0],   leggings:[3,0,0],   boots:[1,0,0]},
+    diamond:   {helmet:[3,2,0],   chestplate:[8,2,0],   leggings:[6,2,0],   boots:[3,2,0]},
+    netherite: {helmet:[3,3,0.1], chestplate:[8,3,0.1], leggings:[6,3,0.1], boots:[3,3,0.1]},
+  };
+
+  // {material: {slot: durability}} — differs from tool durability; iron and
+  // chainmail are genuinely identical in vanilla, this isn't a typo.
+  const ARMOR_DURABILITY = {
+    leather:   {helmet:55,  chestplate:80,  leggings:75,  boots:65},
+    chainmail: {helmet:165, chestplate:240, leggings:225, boots:195},
+    iron:      {helmet:165, chestplate:240, leggings:225, boots:195},
+    gold:      {helmet:77,  chestplate:112, leggings:105, boots:91},
+    diamond:   {helmet:363, chestplate:528, leggings:495, boots:429},
+    netherite: {helmet:407, chestplate:592, leggings:555, boots:481},
+  };
+
+  // Fixed single-tier items — no material select. `damage`/`speed` are
+  // null wherever vanilla has no clean melee number (ranged/utility
+  // items); a `note` explains what's shown instead.
+  const FIXED_STATS = {
+    mace:        {durability:500, damage:6,    speed:0.6, note:null},
+    elytra:      {durability:432, damage:null, speed:null,
+      note:'Worn for flight, not defense — 0 armor, 0 toughness.'},
+    bow:         {durability:384, damage:null, speed:null,
+      note:'Ranged weapon — damage depends on draw time and arrow type (2–10, up to ~22 fully charged with a critical hit). No fixed melee number is modeled.'},
+    crossbow:    {durability:465, damage:null, speed:null,
+      note:'Ranged weapon — damage depends on the loaded projectile. No fixed melee number is modeled.'},
+    trident:     {durability:250, damage:9, speed:1.1,
+      note:'Also usable as a ranged throw; the melee stat is shown here.'},
+    fishing_rod: {durability:65,  damage:null, speed:null, note:'Not a weapon.'},
+    shears:      {durability:238, damage:null, speed:null, note:'Not a weapon.'},
+    shield:      {durability:336, damage:null, speed:null,
+      note:'Blocking item — its damage-blocking behavior isn’t modeled as a stat here.'},
+  };
+
+  const isTieredTool = itemId => TIERED_TOOLS.includes(itemId);
+  const isTieredArmor = itemId => TIERED_ARMOR.includes(itemId);
+  const hasPhysicalStats = itemId => itemId !== 'book';
+
+  const materialsFor = itemId =>
+    isTieredTool(itemId) ? TOOL_TIERS : isTieredArmor(itemId) ? ARMOR_TIERS : [];
+
+  const materialName = m => MATERIAL_NAME[m] || m;
+
+  function iconKeyFor(itemId, materialId){
+    if (!materialId) return itemId;
+    return `${ICON_MATERIAL_PREFIX[materialId] || materialId}_${itemId}`;
+  }
+
+  /** Base stats only — no enchantments applied. Null if the item has none (book). */
+  function baseStats(itemId, materialId){
+    if (isTieredTool(itemId)){
+      const [damage, speed] = TOOL_COMBAT[itemId][materialId];
+      return {kind:'tool', damage, speed, durability:TOOL_DURABILITY[materialId],
+        armor:null, toughness:null, kb:null, note:null};
+    }
+    if (isTieredArmor(itemId)){
+      const [armor, toughness, kb] = ARMOR_DEFENSE[materialId][itemId];
+      return {kind:'armor', damage:null, speed:null, durability:ARMOR_DURABILITY[materialId][itemId],
+        armor, toughness, kb, note:null};
+    }
+    if (FIXED_STATS[itemId]){
+      const f = FIXED_STATS[itemId];
+      return {kind:f.damage != null ? 'tool' : 'fixed', damage:f.damage, speed:f.speed,
+        durability:f.durability, armor:null, toughness:null, kb:null, note:f.note};
+    }
+    return null;   // book — no physical stats
+  }
+
+  /**
+   * Bounded, explicit set of enchantments that compute a real number here.
+   * Every other enchantment is left exactly as-is in the existing anvil
+   * step-card cost breakdown — this never tries to force every
+   * enchantment into a stat. `fold` names which resultingStats() field
+   * the value gets folded into ('damage'/'durability'), or null when the
+   * effect is conditional/runtime-dependent and shown as a labeled line
+   * only (e.g. smite is undead-only, so it can't safely generalize into
+   * the Damage tile).
+   */
+  function enchantModifiers(enchMap){
+    const mods = [];
+    const lvl = id => enchMap[id] || 0;
+    const push = (id, label, fold, value, text) => mods.push({id, label, fold, value, text});
+
+    if (lvl('sharpness')){
+      const v = 0.5 * lvl('sharpness') + 0.5;
+      push('sharpness', `Sharpness ${RN[lvl('sharpness')]}`, 'damage', v,
+        `+${v.toFixed(1)} damage, folded into Damage above.`);
+    }
+    if (lvl('smite')){
+      const v = 2.5 * lvl('smite');
+      push('smite', `Smite ${RN[lvl('smite')]}`, null, v,
+        `+${v.toFixed(1)} damage, undead only. Not folded into the Damage tile above.`);
+    }
+    if (lvl('bane_of_arthropods')){
+      const v = 2.5 * lvl('bane_of_arthropods');
+      push('bane_of_arthropods', `Bane of Arthropods ${RN[lvl('bane_of_arthropods')]}`, null, v,
+        `+${v.toFixed(1)} damage, arthropods only. Not folded into the Damage tile above.`);
+    }
+    if (lvl('knockback')){
+      const v = 0.5 * lvl('knockback');
+      push('knockback', `Knockback ${RN[lvl('knockback')]}`, null, v,
+        `Extra knockback push (informal +${v.toFixed(1)}) — exact distance depends on target state.`);
+    }
+    for (const [eid, name, pct, scope] of [
+      ['protection', 'Protection', 4, null],
+      ['fire_protection', 'Fire Protection', 8, 'fire/lava damage only'],
+      ['blast_protection', 'Blast Protection', 8, 'explosion damage only'],
+      ['projectile_protection', 'Projectile Protection', 6, 'projectile damage only'],
+    ]) if (lvl(eid)){
+      const v = pct * lvl(eid);
+      push(eid, `${name} ${RN[lvl(eid)]}`, null, v,
+        `${v}% damage reduction (this piece only${scope ? ', ' + scope : ''}). Not summed across a full armor set.`);
+    }
+    if (lvl('feather_falling')){
+      const v = Math.min(48, 12 * lvl('feather_falling'));
+      push('feather_falling', `Feather Falling ${RN[lvl('feather_falling')]}`, null, v,
+        `${v}% fall-damage-only reduction — separate from the Protection family.`);
+    }
+    if (lvl('unbreaking')){
+      const v = lvl('unbreaking') + 1;
+      push('unbreaking', `Unbreaking ${RN[lvl('unbreaking')]}`, 'durability', v,
+        `×${v} effective durability (expected uses before breaking), folded into Durability above.`);
+    }
+    if (lvl('power')){
+      const mult = 1 + 0.5 * lvl('power') + 0.5;
+      push('power', `Power ${RN[lvl('power')]}`, null, mult,
+        `×${mult.toFixed(2)} arrow damage — a bow has no melee base stat to fold this into.`);
+    }
+    if (lvl('punch')){
+      push('punch', `Punch ${RN[lvl('punch')]}`, null, lvl('punch'),
+        `Extra arrow knockback (+${lvl('punch')}).`);
+    }
+    if (lvl('density')){
+      const v = 0.5 * lvl('density');
+      push('density', `Density ${RN[lvl('density')]}`, null, v,
+        `+${v.toFixed(1)} damage per block fallen during a mace smash attack — rate only; fall distance isn’t a known input here.`);
+    }
+    if (lvl('breach')){
+      const v = 15 * lvl('breach');
+      push('breach', `Breach ${RN[lvl('breach')]}`, null, v,
+        `Ignores ${v}% of the target’s armor during a mace smash attack.`);
+    }
+    if (lvl('wind_burst')){
+      push('wind_burst', `Wind Burst ${RN[lvl('wind_burst')]}`, null, null,
+        `Launches the user upward on a mace smash attack (height scales with level) — utility only, no stat number.`);
+    }
+    return mods;
+  }
+
+  /** Base stats + in-scope enchantment modifiers folded in. The UI renders this directly. */
+  function resultingStats(itemId, materialId, enchMap){
+    const base = baseStats(itemId, materialId);
+    if (!base) return null;
+    const mods = enchantModifiers(enchMap || {});
+    let finalDamage = base.damage, finalDurability = base.durability;
+    for (const m of mods){
+      if (m.fold === 'damage' && finalDamage != null) finalDamage += m.value;
+      if (m.fold === 'durability' && finalDurability != null) finalDurability = Math.round(finalDurability * m.value);
+    }
+    const finalSpeed = base.speed;
+    const dps = (finalDamage != null && finalSpeed != null)
+      ? Math.round(finalDamage * finalSpeed * 100) / 100 : null;
+    return {base, mods, finalDamage, finalSpeed, dps,
+      finalArmor:base.armor, finalToughness:base.toughness, finalKb:base.kb, finalDurability};
+  }
+
+  return Object.freeze({TOOL_TIERS, ARMOR_TIERS, TIERED_TOOLS, TIERED_ARMOR,
+    TOOL_DURABILITY, TOOL_COMBAT, ARMOR_DEFENSE, ARMOR_DURABILITY, FIXED_STATS,
+    isTieredTool, isTieredArmor, hasPhysicalStats, materialsFor, materialName,
+    iconKeyFor, baseStats, enchantModifiers, resultingStats});
 })();
 
 /* =====================================================================
@@ -853,8 +1074,8 @@ const BrewEngine = (() => {
 })();
 
 /* =====================================================================
- *  SELF-TESTS — §5: run BOTH suites, console.table all results.
- *  Anvil T1–T5, brewing B1–B5 (§9).
+ *  SELF-TESTS — §5: run ALL THREE suites, console.table all results.
+ *  Anvil T1–T5, Gear W1–W8, brewing B1–B5 (§9).
  * ===================================================================== */
 function run_self_tests(){
   const rows = [];
@@ -863,7 +1084,7 @@ function run_self_tests(){
     rows.push({suite, id, name, pass: pass ? 'PASS' : 'FAIL',
       expected: JSON.stringify(expected), actual: JSON.stringify(actual)});
   };
-  const A = AnvilEngine, B = BrewEngine;
+  const A = AnvilEngine, B = BrewEngine, G = GearEngine;
 
   /* ---- anvil suite ---- */
   t('anvil', 'T1', 'prior-work penalty is 2^uses − 1',
@@ -889,6 +1110,51 @@ function run_self_tests(){
   t('anvil', 'T5', 'optimizer: Sharp V+Mending+Looting III+Unbreaking III on sword → 23 (< 27 one-by-one)',
     {ok:r5.ok, total:r5.total, steps:r5.ok ? r5.steps.length : null, beatsSequential:r5.total < seq5},
     {ok:true, total:23, steps:4, beatsSequential:true});
+
+  /* ---- gear suite ---- */
+  const w1 = G.resultingStats('sword', 'diamond', {sharpness:5});
+  t('gear', 'W1', 'Diamond Sword + Sharpness V → 10 damage, 16 DPS',
+    {finalDamage:w1.finalDamage, finalSpeed:w1.finalSpeed, dps:w1.dps},
+    {finalDamage:10, finalSpeed:1.6, dps:16});
+
+  const w2 = G.resultingStats('pickaxe', 'netherite', {unbreaking:3});
+  t('gear', 'W2', 'Netherite Pickaxe + Unbreaking III → durability ×4 = 8124',
+    {baseDurability:w2.base.durability, finalDurability:w2.finalDurability},
+    {baseDurability:2031, finalDurability:8124});
+
+  const w3 = G.resultingStats('chestplate', 'netherite', {});
+  t('gear', 'W3', 'Netherite Chestplate, no enchants → 8 armor / 3 toughness / 0.1 kb / 592 durability',
+    {armor:w3.finalArmor, toughness:w3.finalToughness, kb:w3.finalKb, durability:w3.finalDurability},
+    {armor:8, toughness:3, kb:0.1, durability:592});
+
+  const w4 = G.resultingStats('boots', 'netherite', {protection:4});
+  const w4prot = w4.mods.find(m => m.id === 'protection');
+  t('gear', 'W4', 'Netherite Boots + Protection IV → base untouched, +16% reduction (this piece only)',
+    {armor:w4.finalArmor, toughness:w4.finalToughness, kb:w4.finalKb, durability:w4.finalDurability, protectionPct:w4prot.value},
+    {armor:3, toughness:3, kb:0.1, durability:481, protectionPct:16});
+
+  const w5 = G.resultingStats('boots', 'diamond', {feather_falling:4});
+  const w5ff = w5.mods.find(m => m.id === 'feather_falling');
+  t('gear', 'W5', 'Diamond Boots + Feather Falling IV → base untouched, 48% fall-damage-only reduction',
+    {armor:w5.finalArmor, toughness:w5.finalToughness, durability:w5.finalDurability, fallDamageReductionPct:w5ff.value},
+    {armor:3, toughness:2, durability:429, fallDamageReductionPct:48});
+
+  const w6 = G.resultingStats('sword', 'wood', {sharpness:5, unbreaking:3});
+  t('gear', 'W6', 'Wood Sword + Sharpness V + Unbreaking III → damage and durability fold independently',
+    {finalDamage:w6.finalDamage, finalDurability:w6.finalDurability, finalSpeed:w6.finalSpeed},
+    {finalDamage:7, finalDurability:236, finalSpeed:1.6});
+
+  const w7 = G.resultingStats('axe', 'diamond', {smite:5});
+  const w7smite = w7.mods.find(m => m.id === 'smite');
+  t('gear', 'W7', 'Diamond Axe + Smite V → Damage tile untouched (smite is undead-only, not folded)',
+    {finalDamage:w7.finalDamage, smiteBonus:w7smite.value},
+    {finalDamage:9, smiteBonus:12.5});
+
+  const w8 = G.resultingStats('mace', null, {density:3});
+  const w8density = w8.mods.find(m => m.id === 'density');
+  t('gear', 'W8', 'Mace + Density III → base damage untouched, rate-only modifier (no fall distance input)',
+    {baseDamage:w8.base.damage, densityRatePerBlock:w8density.value, finalDamage:w8.finalDamage},
+    {baseDamage:6, densityRatePerBlock:1.5, finalDamage:6});
 
   /* ---- brewing suite ---- */
   const b1 = B.planBatch([{effect:'strength', potency2:true, extended:false, form:'splash', qty:1}], 1);
@@ -1029,18 +1295,33 @@ function arrow(){ return el('span', {class:'arr', 'aria-hidden':'true', text:'�
 
 /* ------------------------------ ANVIL UI ------------------------------ */
 function bootAnvil(){
-  const A = AnvilEngine;
-  const S = {itemId:'sword', uses:0, have:[], books:[]};   // module state, kept in memory across tab switches
+  const A = AnvilEngine, G = GearEngine;
+  const S = {itemId:'sword', materialId:'iron', uses:0, have:[], books:[]};   // module state, kept in memory across tab switches
 
   const selItem = $('#an-item'), inUses = $('#an-uses'),
         selHaveE = $('#an-have-ench'), selHaveL = $('#an-have-lvl'),
         selBookE = $('#an-book-ench'), selBookL = $('#an-book-lvl'),
-        out = $('#an-out'), itemIcon = $('#an-item-icon');
+        out = $('#an-out'), itemIcon = $('#an-item-icon'),
+        selMaterial = $('#an-material'), materialWrap = $('#an-material-wrap'),
+        statsCard = $('#an-stats-card'), statsOut = $('#an-stats-out');
 
   for (const [id, it] of Object.entries(A.ITEMS))
     selItem.append(el('option', {value:id, text:it.name}));
   selItem.value = S.itemId;
-  itemIcon.src = ICONS[S.itemId] || BLANK_ICON;
+
+  function syncIcon(){ itemIcon.src = ICONS[G.iconKeyFor(S.itemId, S.materialId)] || ICONS[S.itemId] || BLANK_ICON; }
+
+  function fillMaterialSelect(){
+    const materials = G.materialsFor(S.itemId);
+    materialWrap.hidden = materials.length === 0;
+    if (!materials.length) return;
+    if (!materials.includes(S.materialId)) S.materialId = materials.includes('iron') ? 'iron' : materials[0];
+    selMaterial.textContent = '';
+    for (const m of materials) selMaterial.append(el('option', {value:m, text:G.materialName(m)}));
+    selMaterial.value = S.materialId;
+  }
+  fillMaterialSelect();
+  syncIcon();
 
   function fillEnchSelect(sel){
     sel.textContent = '';
@@ -1080,7 +1361,7 @@ function bootAnvil(){
     if (!S.books.length){
       out.append(el('p', {class:'empty',
         text:'Add at least one enchanted book — the optimizer explores every combine order and returns the cheapest.'}));
-      return;
+      return null;
     }
     const itemUnit = A.item(S.itemId,
       Object.fromEntries(S.have.map(h => [h.id, h.lvl])), S.uses);
@@ -1088,7 +1369,7 @@ function bootAnvil(){
     const plan = A.optimize([itemUnit, ...books]);
     if (!plan.ok){
       for (const m of plan.errors) out.append(el('p', {class:'msg-err', text:m}));
-      return;
+      return null;
     }
     const seq = A.sequentialTotal(itemUnit, books);
     const priciest = Math.max(...plan.steps.map(s => s.cost));
@@ -1124,16 +1405,58 @@ function bootAnvil(){
       out.append(el('p', {class:'msg-warn',
         text:'Some enchantments conflict and were dropped: ' +
              plan.dropped.map(d => A.ENCH[d].name).join(', ')}));
+    return plan;
   }
 
-  function render(){ renderLists(); renderPlan(); }
+  function renderStats(plan){
+    if (!G.hasPhysicalStats(S.itemId)){ statsCard.hidden = true; return; }
+    statsCard.hidden = false;
+    statsOut.textContent = '';
+    const enchMap = plan ? plan.result.ench : Object.fromEntries(S.have.map(h => [h.id, h.lvl]));
+    const stats = G.resultingStats(S.itemId, S.materialId, enchMap);
+    const durTile = stats.finalDurability != null
+      ? tile(String(stats.finalDurability), 'durability',
+          stats.finalDurability !== stats.base.durability ? `base ${stats.base.durability}` : null)
+      : null;
+    if (stats.base.armor != null){
+      statsOut.append(el('div', {class:'tiles'},
+        tile(String(stats.finalArmor), 'armor'),
+        tile(String(stats.finalToughness), 'toughness'),
+        tile(`${Math.round(stats.finalKb * 100)}%`, 'knockback resist'),
+        durTile));
+    } else if (stats.base.damage != null){
+      statsOut.append(el('div', {class:'tiles'},
+        tile(stats.finalDamage.toFixed(1).replace(/\.0$/, ''), 'damage'),
+        tile(String(stats.finalSpeed), 'attacks/sec'),
+        stats.dps != null ? tile(String(stats.dps), 'DPS') : null,
+        durTile));
+    } else {
+      statsOut.append(el('div', {class:'tiles'}, durTile));
+    }
+    if (stats.base.note)
+      statsOut.append(el('p', {class:'assume', text:stats.base.note}));
+    if (stats.mods.length){
+      const ul = el('ul', {class:'hints'});
+      for (const m of stats.mods)
+        ul.append(el('li', {}, el('b', {text:m.label}), ' — ' + m.text));
+      statsOut.append(ul);
+    } else {
+      statsOut.append(el('p', {class:'empty', text:'No stat-affecting enchantments applied yet.'}));
+    }
+  }
+
+  function render(){ renderLists(); renderStats(renderPlan()); }
 
   selItem.addEventListener('change', () => {
     S.itemId = selItem.value;
-    itemIcon.src = ICONS[S.itemId] || BLANK_ICON;
+    fillMaterialSelect(); syncIcon();
     S.have = S.have.filter(h => A.applies(h.id, S.itemId));
     S.books = S.books.filter(b => A.applies(b.id, S.itemId));
     fillEnchSelect(selHaveE); fillEnchSelect(selBookE); render();
+  });
+  selMaterial.addEventListener('change', () => {
+    S.materialId = selMaterial.value;
+    syncIcon(); render();
   });
   inUses.addEventListener('change', () => {
     S.uses = Math.max(0, Math.min(8, parseInt(inUses.value, 10) || 0));
@@ -1383,7 +1706,7 @@ if (HAS_DOM){
 
 /* Node/test harness export — engines are DOM-free by construction. */
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = {AnvilEngine, BrewEngine, run_self_tests};
+  module.exports = {AnvilEngine, BrewEngine, GearEngine, run_self_tests};
 </script>
 </body>
 </html>
