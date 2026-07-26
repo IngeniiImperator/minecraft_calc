@@ -30,7 +30,7 @@ helpers.
 ## Self-tests
 
 `run_self_tests()` runs on page load, executes all three suites (anvil T1–T5,
-gear W1–W8, and brewing B1–B5), and `console.table`s all results. The footer
+gear W1–W10, and brewing B1–B5), and `console.table`s all results. The footer
 shows a pass/fail badge. Headless run:
 
 ```sh
