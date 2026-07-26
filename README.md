@@ -67,8 +67,10 @@ described in [Testing](#testing).
 ### Anvil Combiner
 
 Given a target item and a pool of enchanted books, the Anvil Combiner finds
-the cheapest possible order to combine them all at an anvil, and shows the
-resulting item's real combat or defense stats.
+the cheapest possible order to combine them all at an anvil — pairing the
+target with a **sacrifice** (the book or item consumed in each step to
+transfer its enchantments) — and shows the resulting item's real combat or
+defense stats.
 
 **Inputs**
 
@@ -97,14 +99,14 @@ books one after another in the order you added them.
 | Term | Rule |
 | --- | --- |
 | Prior-work penalty | `2^(prior anvil uses) − 1` XP levels, charged for *both* the target and the sacrifice in every operation |
-| Enchantment cost | `final level × per-level multiplier` — the multiplier depends on the enchantment and is cheaper when the sacrifice is a book than when it's an item |
+| Enchantment cost | `final level × per-level multiplier` — the multiplier depends on the enchantment; a book sacrifice is never more expensive than an item sacrifice, and is cheaper for most enchantments (a handful, like Sharpness and Protection, cost the same either way) |
 | Leveling a duplicate | Combining two copies of the same enchantment at the same level raises it by one, up to that enchantment's max level; combining different levels keeps the higher one |
 | Conflict penalty | A sacrifice enchantment that conflicts with one already present (e.g. Sharpness vs. Smite) still costs **+1 level** but is dropped rather than applied |
 | Inapplicable enchantments | An enchantment a book carries that doesn't fit the target item type is skipped for free (no cost, no effect) |
 | "Too Expensive" cap | Any single operation whose total cost reaches **40 levels** is rejected outright — the optimizer never routes through it, matching survival mode's anvil cap |
 
 42 enchantments are modeled in total, with 20 mutually-exclusive pairs
-(the three Protection variants against each other, Sharpness/Smite/Bane of
+(the four Protection variants against each other, Sharpness/Smite/Bane of
 Arthropods against each other, Silk Touch vs. Fortune, Infinity vs.
 Mending, and so on) enforced automatically.
 
@@ -117,7 +119,8 @@ Mending, and so on) enforced automatically.
   single step, and levels saved versus a naive one-by-one order.
 
 <a id="material-tiers-and-stats"></a>
-**Resulting item stats**
+**Resulting item stats** *(referred to elsewhere in this document as the
+"gear-stats" panel — `GearEngine` in the source)*
 
 Alongside the combine order, the panel also shows the finished item's real
 stats:
@@ -160,9 +163,10 @@ cycles and totals up the cost.
   by corrupting a related potion with a fermented spider eye.
 - **Potency II** (glowstone dust — Slowness becomes Potency **IV**
   instead, per its special case) and **Extended** (redstone dust) toggles.
-  These are mutually exclusive, and each one is automatically disabled
-  with an explanation when the selected effect has no such variant (or,
-  for Extended, when the effect is instant).
+  These are mutually exclusive — checking one automatically unchecks the
+  other — and each is also disabled with an explanation when the selected
+  effect has no such variant (or, for Extended, when the effect is
+  instant).
 - **Form** — Potion, Splash, Lingering, or Tipped Arrow.
 - **Quantity** (or arrow count, for tipped arrows).
 - **Brewing stands available**, used for the elapsed-time estimate.
@@ -207,8 +211,11 @@ example, share those cycles instead of repeating them.
 - A surplus note when tipped-arrow crafting (which always happens in
   batches of 8) yields more arrows than requested.
 
-Requesting Potency II and Extended together is rejected with a validation
-error — no partial plan is produced.
+Under the hood, the planning engine also rejects Potency II + Extended as
+a validation error if both are ever requested together. The shopping-list
+checkboxes already prevent selecting both at once, so in practice this is
+a defensive guard exercised by the self-test suite rather than something
+you'll see triggered on screen.
 
 Brewing involves **no XP and no anvil interaction**; the base potion
 durations shown next to each effect are reference/flavor text only and are
@@ -227,7 +234,7 @@ A quick-reference table of the constants driving both engines:
 | Bottles per cycle | 3 | Bottles a stand brews at once |
 | Fuel per blaze powder | 20 cycles | Brewing-stand charges from one blaze powder |
 | Tipped-arrow batch | 8 arrows | Arrows produced per lingering potion consumed |
-| Enchantments modeled | 42 | Across the Anvil Combiner and gear-stats engine |
+| Enchantments modeled | 42 | All usable in the Anvil Combiner; 15 also affect gear stats (2 folded into headline tiles, 13 shown as separate lines) |
 | Potion effects modeled | 19 | 16 direct + 3 corruption-only |
 | Item types | 18 | 17 wearable/wieldable items + the enchanted book carrier |
 
@@ -272,9 +279,11 @@ constants:
 - **`BrewEngine`** — the brewing-stand state machine (`applyIngredient`)
   and the batch/cycle planner (`planBatch`).
 
-Each engine is DOM-free by construction (guarded by a `HAS_DOM` check) and
-`Object.freeze()`-d, so it only exposes its intended public surface. A
-small shared UI layer (`el()`, `$()`, `tile()`, `stateChip()`, and similar
+Each engine is DOM-free by construction — none of the three ever
+references `document` or `window` — and `Object.freeze()`-d, so it only
+exposes its intended public surface. A separate `HAS_DOM` check, defined
+after all three engines, gates the DOM-touching UI layer instead. A small
+shared UI layer (`el()`, `$()`, `tile()`, `stateChip()`, and similar
 helpers) renders both modules' DOM purely from those engines' return
 values; a `bootTabs()` / `bootAnvil()` / `bootBrew()` sequence wires
 everything up on `DOMContentLoaded`.
@@ -306,7 +315,7 @@ batch sizes that don't divide evenly into brew cycles.
 
 The suite runs automatically the moment the page loads: results are
 printed with `console.table()`, and the footer shows a live pass/fail
-badge (e.g. *"self-tests: 18/18 passing"*).
+badge (e.g. *"self-tests: 18/18 passing (see console.table)"*).
 
 It can also run headlessly with only Node.js — no browser, no
 dependencies:
@@ -332,20 +341,22 @@ badge (or the command above) still shows everything passing.
 - Tabs implement the full ARIA tabs pattern (`role="tablist"`/`"tab"`/
   `"tabpanel"`, `aria-selected`, `aria-controls`) with Left/Right/Home/End
   keyboard navigation and a roving `tabindex`.
-- Both result panels are `aria-live="polite"` regions, so recalculated
-  output is announced to assistive technology without manual refocus.
+- Every dynamic output card is an `aria-live="polite"` region — the
+  combine-order and item-stats panels in the Anvil Combiner, plus the
+  brew-plan panel in the Brewing Planner — so recalculated output is
+  announced to assistive technology without manual refocus.
 - Every interactive control has a visible `:focus-visible` outline, and
   `@media (prefers-reduced-motion: reduce)` disables transitions and
   animations.
 - The two-column layout collapses to a single column below 900px width.
 - Requires JavaScript (a `<noscript>` message explains this if it's
   disabled); no Internet Explorer support and no polyfills are included.
-- Verified to make **zero outbound network requests** — no external
-  fonts, scripts, images, or analytics of any kind.
+- Makes **zero outbound network requests** — no external fonts, scripts,
+  images, or analytics of any kind.
 
 ## Project Structure
 
-```
+```text
 minecraft_calc/
 ├── README.md    — this file
 └── index.html   — the entire application: markup, styles, engines, UI, and self-tests
