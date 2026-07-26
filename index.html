@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<title>Minecraft Calc — Anvil Combiner, Brewing Planner &amp; Book Library</title>
+<title>Minecraft Calc — Anvil Combiner, Brewing Planner, Book Library &amp; Character Profiles</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%230e0f13"/><rect x="3" y="3" width="10" height="3" fill="%23a7b0c0"/><rect x="6" y="6" width="4" height="3" fill="%23808a9c"/><rect x="4" y="9" width="8" height="4" fill="%23a7b0c0"/><rect x="12" y="10" width="2" height="2" fill="%23b78aff"/></svg>'>
 <style>
 /* ================================================================
@@ -30,6 +30,7 @@
   --accent-anvil:#8fe14d;            /* experience green */
   --accent-brew: #b78aff;            /* potion violet — the brewing module's one added accent */
   --accent-lib:  #f2c94c;            /* enchanted-book gold — the library module's one added accent */
+  --accent-char: #5fb4ff;            /* build-log sky blue — the character module's one added accent */
   --accent:      var(--accent-anvil);
   --mono: ui-monospace,"Cascadia Code","JetBrains Mono","IBM Plex Mono","SF Mono",
           Menlo,Consolas,"Liberation Mono",monospace;
@@ -63,6 +64,7 @@ header.masthead{display:flex; flex-wrap:wrap; gap:22px; align-items:flex-end;
 .brand h1 .hl{color:var(--accent-anvil)}
 .brand h1 .h2l{color:var(--accent-brew)}
 .brand h1 .h3l{color:var(--accent-lib)}
+.brand h1 .h4l{color:var(--accent-char)}
 .brand .sub{margin:6px 0 0; color:var(--dim); font-size:13px; letter-spacing:.04em}
 
 /* ---------- tabs (hotbar) ---------- */
@@ -86,12 +88,14 @@ header.masthead{display:flex; flex-wrap:wrap; gap:22px; align-items:flex-end;
 #tab-brew{--tab-accent:var(--accent-brew)}
 #tab-anvil{--tab-accent:var(--accent-anvil)}
 #tab-lib{--tab-accent:var(--accent-lib)}
+#tab-char{--tab-accent:var(--accent-char)}
 
 /* ---------- module panels ---------- */
 section[role="tabpanel"]{outline:none}
 #panel-anvil{--accent:var(--accent-anvil)}
 #panel-brew {--accent:var(--accent-brew)}
 #panel-lib  {--accent:var(--accent-lib)}
+#panel-char {--accent:var(--accent-char)}
 .module-grid{display:grid; grid-template-columns:minmax(320px,380px) 1fr; gap:22px; align-items:start}
 
 .card{
@@ -114,11 +118,12 @@ label.f > .lab, .lab{
   display:block; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
   color:var(--faint); margin-bottom:5px;
 }
-select,input[type=number],input[type=text]{
+select,input[type=number],input[type=text],textarea{
   width:100%; font:inherit; color:var(--text); background:var(--slot);
   border:2px solid; border-color:var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
   padding:8px 10px; border-radius:0;
 }
+textarea{resize:vertical; min-height:64px}
 input[type=number]{appearance:textfield}
 select:focus-visible,input:focus-visible,button:focus-visible,[role=tab]:focus-visible{
   outline:2px solid var(--accent); outline-offset:2px;
@@ -241,6 +246,8 @@ ul.lib-list{list-style:none; margin:10px 0 0; padding:0; display:flex; flex-dire
 .badge-available{color:var(--ok); border-color:var(--ok)}
 .badge-reserved{color:var(--accent-lib); border-color:var(--accent-lib)}
 .badge-used{color:var(--faint); border-color:var(--line)}
+.badge-equipped{color:var(--accent-char); border-color:var(--accent-char)}
+.badge-active{color:var(--accent-char); border-color:var(--accent-char)}
 .progress{height:10px; background:var(--slot); margin:10px 0 6px; overflow:hidden;
   border:2px solid; border-color:var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark)}
 .progress > i{display:block; height:100%; background:var(--accent-lib)}
@@ -277,7 +284,7 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
 
 <header class="masthead">
   <div class="brand">
-    <h1>Minecraft <span class="hl">Calc</span><br><span aria-hidden="true">▚</span> <span class="hl">Anvil</span> + <span class="h2l">Brewing</span> + <span class="h3l">Library</span></h1>
+    <h1>Minecraft <span class="hl">Calc</span><br><span aria-hidden="true">▚</span> <span class="hl">Anvil</span> + <span class="h2l">Brewing</span> + <span class="h3l">Library</span> + <span class="h4l">Characters</span></h1>
     <p class="sub">Java Edition 1.21.x · deterministic planners · single file, no network</p>
   </div>
   <nav class="tabs" role="tablist" aria-label="Calculator modules">
@@ -287,6 +294,8 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
       <span class="dot" aria-hidden="true"></span>Brewing Planner</button>
     <button class="tab" id="tab-lib" role="tab" aria-selected="false" aria-controls="panel-lib" tabindex="-1">
       <span class="dot" aria-hidden="true"></span>Book Library</button>
+    <button class="tab" id="tab-char" role="tab" aria-selected="false" aria-controls="panel-char" tabindex="-1">
+      <span class="dot" aria-hidden="true"></span>Characters</button>
   </nav>
 </header>
 
@@ -483,10 +492,87 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
     </div>
   </div>
 </section>
+
+<!-- ========================= CHARACTERS ========================== -->
+<section id="panel-char" role="tabpanel" aria-labelledby="tab-char" data-module="char" hidden>
+  <div class="module-grid">
+    <div>
+      <div class="card">
+        <h2>Characters</h2>
+        <p class="empty" style="margin:-6px 0 12px">Persistent profiles, independent of any book or project — merging books never touches these.</p>
+        <label class="f"><span class="lab">New character name</span>
+          <input id="char-new-name" type="text" placeholder="Ranger"></label>
+        <p class="msg-err" id="char-new-msg" hidden></p>
+        <button class="btn" id="char-new-add" type="button">Create character</button>
+        <ul class="lib-list" id="char-roster-list"></ul>
+      </div>
+      <div class="card">
+        <h2>Add inventory item</h2>
+        <p class="empty" id="char-item-none" style="margin:-6px 0 12px">Create or select a character above first.</p>
+        <div id="char-item-form" hidden>
+          <div class="row" style="align-items:center; gap:8px">
+            <label class="f" style="flex:1"><span class="lab">Item type</span><select id="char-item-type"></select></label>
+            <img id="char-item-icon" class="icon-preview" alt="">
+          </div>
+          <label class="f" id="char-item-material-wrap"><span class="lab">Material</span>
+            <select id="char-item-material"></select></label>
+          <div class="row">
+            <label class="f"><span class="lab">Custom name</span>
+              <input id="char-item-name" type="text" placeholder="Woodcutting"></label>
+            <label class="f" style="max-width:90px"><span class="lab">Qty</span>
+              <input id="char-item-qty" type="number" min="1" max="999" step="1" value="1"></label>
+          </div>
+          <h3>Enchantments</h3>
+          <div class="row">
+            <label class="f"><span class="lab">Enchantment</span><select id="char-item-ench"></select></label>
+            <label class="f" style="max-width:90px"><span class="lab">Level</span><select id="char-item-ench-lvl"></select></label>
+          </div>
+          <button class="btn" id="char-item-ench-add" type="button">Add enchantment</button>
+          <ul class="chips" id="char-item-ench-list"></ul>
+          <h3>Custom stats</h3>
+          <p class="empty" style="margin:-4px 0 8px">Free-form metadata — role, damage bonus, anything worth remembering about this specific copy.</p>
+          <div class="row">
+            <label class="f"><span class="lab">Stat label</span>
+              <input id="char-item-stat-label" type="text" placeholder="Harvest Speed"></label>
+            <label class="f"><span class="lab">Value</span>
+              <input id="char-item-stat-value" type="text" placeholder="+15"></label>
+          </div>
+          <button class="btn" id="char-item-stat-add" type="button">Add stat</button>
+          <ul class="chips" id="char-item-stat-list"></ul>
+          <label class="f"><span class="lab">Notes</span>
+            <input id="char-item-notes" type="text" placeholder="optional"></label>
+          <p class="msg-err" id="char-item-msg" hidden></p>
+          <button class="btn" id="char-item-add" type="button">Add item to inventory</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" aria-live="polite">
+        <h2>Equipment &amp; inventory</h2>
+        <div id="char-equip-out"></div>
+      </div>
+      <div class="card">
+        <h2>Import &amp; export</h2>
+        <p class="empty" style="margin:-6px 0 12px">Export to a file, then import it into another project or after a book merge to bring builds along — importing always adds new entries, it never overwrites what's already here.</p>
+        <div class="row">
+          <button class="btn" id="char-export-one" type="button">Export this character</button>
+          <button class="btn" id="char-export-all" type="button">Export all characters</button>
+        </div>
+        <h3>Import</h3>
+        <label class="f"><span class="lab">From a file</span>
+          <input id="char-import-file" type="file" accept="application/json,.json"></label>
+        <label class="f"><span class="lab">Or paste exported JSON</span>
+          <textarea id="char-import-paste" placeholder='{"schemaVersion":1,...}'></textarea></label>
+        <button class="btn" id="char-import-btn" type="button">Import</button>
+        <p class="msg-err" id="char-io-msg" hidden></p>
+      </div>
+    </div>
+  </div>
+</section>
 </main>
 
 <footer>
-  <span>Anvil: enchant-combining only (repairs &amp; renames out of scope) · Brewing: durations shown are display-only flavor · Library: saved locally in this browser only, nothing leaves your device.</span>
+  <span>Anvil: enchant-combining only (repairs &amp; renames out of scope) · Brewing: durations shown are display-only flavor · Library &amp; Characters: saved locally in this browser only, nothing leaves your device.</span>
   <span id="test-badge">self-tests: pending…</span>
   <span style="flex-basis:100%">Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft. Item icons are Minecraft textures used for identification only.</span>
 </footer>
@@ -1328,8 +1414,125 @@ const LibraryEngine = (() => {
 })();
 
 /* =====================================================================
- *  SELF-TESTS — §5: run ALL FOUR suites, console.table all results.
- *  Anvil T1–T5, Gear W1–W10, brewing B1–B5, library L1–L5 (§9).
+ *  CHARACTER ENGINE — independent pure-function namespace.
+ *  Persistent character profiles: custom inventories, per-copy item
+ *  identity (two axes stay distinct even with the same base item type),
+ *  equipped-gear tracking, and JSON import/export. Shares nothing with
+ *  the other three engines beyond reading AnvilEngine's item/enchantment
+ *  ids as plain data (same convention LibraryEngine and GearEngine use).
+ * ===================================================================== */
+const CharacterEngine = (() => {
+  const SLOTS = ['mainhand', 'offhand', 'helmet', 'chestplate', 'leggings', 'boots'];
+  const SLOT_LABEL = {mainhand:'Main Hand', offhand:'Off Hand', helmet:'Helmet',
+    chestplate:'Chestplate', leggings:'Leggings', boots:'Boots'};
+  const SCHEMA_VERSION = 1;
+
+  let seq = 0;
+  const nextId = prefix => `${prefix}_${Date.now().toString(36)}_${(seq++).toString(36)}`;
+
+  function makeItem(data = {}){
+    return {
+      id: data.id || nextId('item'),
+      itemType: data.itemType || 'sword',
+      material: data.material || null,
+      customName: data.customName || '',
+      ench: {...(data.ench || {})},
+      stats: (data.stats || []).map(s => ({label: s.label || '', value: s.value || ''})),
+      notes: data.notes || '',
+      qty: Math.max(1, data.qty || 1),
+      slot: SLOTS.includes(data.slot) ? data.slot : null,
+    };
+  }
+
+  function makeCharacter(data = {}){
+    return {
+      id: data.id || nextId('char'),
+      name: data.name || 'Unnamed',
+      notes: data.notes || '',
+      items: (data.items || []).map(makeItem),
+    };
+  }
+
+  /** Equips `itemId` into `slot`; whatever else already occupies that slot is unequipped. Pure. */
+  function equipItem(character, itemId, slot){
+    if (!SLOTS.includes(slot)) return character;
+    return {...character, items: character.items.map(it => {
+      if (it.id === itemId) return {...it, slot};
+      if (it.slot === slot) return {...it, slot:null};
+      return it;
+    })};
+  }
+  function unequipItem(character, itemId){
+    return {...character, items: character.items.map(it => it.id === itemId ? {...it, slot:null} : it)};
+  }
+  function addItem(character, itemData){
+    return {...character, items: [...character.items, makeItem(itemData)]};
+  }
+  function updateItem(character, itemId, patch){
+    return {...character, items: character.items.map(it =>
+      it.id === itemId ? makeItem({...it, ...patch, id: it.id}) : it)};
+  }
+  function removeItem(character, itemId){
+    return {...character, items: character.items.filter(it => it.id !== itemId)};
+  }
+  /** {slot: item-or-null} for every equipment slot. */
+  function equippedItems(character){
+    const map = {};
+    for (const slot of SLOTS) map[slot] = character.items.find(it => it.slot === slot) || null;
+    return map;
+  }
+
+  const cloneCharacter = c => ({id:c.id, name:c.name, notes:c.notes,
+    items:c.items.map(it => ({...it, ench:{...it.ench}, stats:it.stats.map(s => ({...s}))}))});
+
+  const exportCharacter = character => ({schemaVersion:SCHEMA_VERSION, character:cloneCharacter(character)});
+  const exportCharacters = characters => ({schemaVersion:SCHEMA_VERSION, characters:characters.map(cloneCharacter)});
+
+  /**
+   * Parses an exported payload (single- or multi-character shape, or a bare
+   * array) and returns brand-new characters with fresh ids, ready to append
+   * to an existing roster. Import never mutates or overwrites what's
+   * already there — a name collision gets " (imported)" appended instead
+   * of silently merging or replacing, so re-importing a profile (e.g. after
+   * a book merge reorganizes a project) can never lose the existing copy.
+   */
+  function importPayload(payload, existingCharacters = []){
+    let raw;
+    try { raw = typeof payload === 'string' ? JSON.parse(payload) : payload; }
+    catch (e){ return {ok:false, errors:['Invalid JSON.']}; }
+    if (!raw || typeof raw !== 'object') return {ok:false, errors:['Invalid import payload.']};
+    const list = Array.isArray(raw.characters) ? raw.characters
+      : raw.character ? [raw.character]
+      : Array.isArray(raw) ? raw
+      : null;
+    if (!list) return {ok:false, errors:['No character data found in the imported file.']};
+    const errors = [];
+    const takenNames = new Set(existingCharacters.map(c => c.name));
+    const imported = [];
+    for (const entry of list){
+      if (!entry || typeof entry !== 'object' || !Array.isArray(entry.items)){
+        errors.push('Skipped an entry with no valid item list.');
+        continue;
+      }
+      let name = entry.name || 'Imported Character';
+      while (takenNames.has(name)) name = `${name} (imported)`;
+      takenNames.add(name);
+      const items = entry.items.map(it => makeItem({...it, id:undefined}));
+      imported.push(makeCharacter({name, notes:entry.notes || '', items}));
+    }
+    if (!imported.length) return {ok:false, errors: errors.length ? errors : ['Nothing importable was found.']};
+    return {ok:true, characters:imported, errors};
+  }
+
+  return Object.freeze({SLOTS, SLOT_LABEL, SCHEMA_VERSION,
+    makeCharacter, makeItem, equipItem, unequipItem, addItem, updateItem, removeItem,
+    equippedItems, exportCharacter, exportCharacters, importPayload});
+})();
+
+/* =====================================================================
+ *  SELF-TESTS — §5: run ALL FIVE suites, console.table all results.
+ *  Anvil T1–T5, Gear W1–W10, brewing B1–B5, library L1–L5, character
+ *  C1–C5 (§9).
  * ===================================================================== */
 function run_self_tests(){
   const rows = [];
@@ -1338,7 +1541,7 @@ function run_self_tests(){
     rows.push({suite, id, name, pass: pass ? 'PASS' : 'FAIL',
       expected: JSON.stringify(expected), actual: JSON.stringify(actual)});
   };
-  const A = AnvilEngine, B = BrewEngine, G = GearEngine, L = LibraryEngine;
+  const A = AnvilEngine, B = BrewEngine, G = GearEngine, L = LibraryEngine, C = CharacterEngine;
 
   /* ---- anvil suite ---- */
   t('anvil', 'T1', 'prior-work penalty is 2^uses − 1',
@@ -1505,6 +1708,43 @@ function run_self_tests(){
   ];
   t('library', 'L5', 'filterBooks: compatible-equipment enchantment set',
     L.filterBooks(l5books, {equipmentEnchIds:['sharpness','smite','bane_of_arthropods']}).length, 1);
+
+  /* ---- character suite ---- */
+  const c1a = C.makeCharacter({name:'Ranger'});
+  const c1b = C.addItem(c1a, {itemType:'axe', customName:'Woodcutting', stats:[{label:'Harvest Speed', value:'+15'}]});
+  const c1 = C.addItem(c1b, {itemType:'axe', customName:'Battle Axe', stats:[{label:'Damage', value:'+12'}]});
+  t('character', 'C1', 'addItem: two axes keep distinct identities despite sharing an item type',
+    {count:c1.items.length, distinctIds:new Set(c1.items.map(i => i.id)).size, names:c1.items.map(i => i.customName)},
+    {count:2, distinctIds:2, names:['Woodcutting','Battle Axe']});
+
+  const woodcutting = c1.items[0], battleAxe = c1.items[1];
+  const c2a = C.equipItem(c1, woodcutting.id, 'mainhand');
+  const c2 = C.equipItem(c2a, battleAxe.id, 'mainhand');
+  t('character', 'C2', 'equipItem: equipping a second item to an occupied slot auto-unequips the first',
+    {firstSlot:c2.items.find(i => i.id === woodcutting.id).slot,
+     secondSlot:c2.items.find(i => i.id === battleAxe.id).slot},
+    {firstSlot:null, secondSlot:'mainhand'});
+
+  const c3 = C.removeItem(c2, woodcutting.id);
+  t('character', 'C3', 'removeItem: deleting an item drops it from inventory without disturbing the other slot',
+    {count:c3.items.length, equippedName:(C.equippedItems(c3).mainhand || {}).customName || null},
+    {count:1, equippedName:'Battle Axe'});
+
+  const c4src = C.updateItem(c3, battleAxe.id, {ench:{sharpness:3}, notes:'my battle axe'});
+  const c4payload = C.exportCharacter(c4src);
+  const c4imp = C.importPayload(c4payload, []);
+  t('character', 'C4', 'export/import round-trip preserves custom name, enchantments, stats, and notes',
+    {ok:c4imp.ok, name:c4imp.ok ? c4imp.characters[0].name : null,
+     ench:c4imp.ok ? c4imp.characters[0].items[0].ench : null,
+     stat:c4imp.ok ? c4imp.characters[0].items[0].stats[0] : null,
+     notes:c4imp.ok ? c4imp.characters[0].items[0].notes : null},
+    {ok:true, name:'Ranger', ench:{sharpness:3}, stat:{label:'Damage', value:'+12'}, notes:'my battle axe'});
+
+  const c5existing = [C.makeCharacter({name:'Ranger'})];
+  const c5imp = C.importPayload(c4payload, c5existing);
+  t('character', 'C5', 'importPayload: a name collision is renamed, never overwrites the existing character',
+    {ok:c5imp.ok, importedName:c5imp.ok ? c5imp.characters[0].name : null, existingUntouched:c5existing[0].items.length},
+    {ok:true, importedName:'Ranger (imported)', existingUntouched:0});
 
   console.table(rows);
   const failed = rows.filter(r => r.pass !== 'PASS');
@@ -2033,6 +2273,7 @@ function bootBrew(){
 
 /* --------------------------- BOOK LIBRARY UI --------------------------- */
 const LIB_LS_KEY = 'mc_calc_library_v1';
+const CHAR_LS_KEY = 'mc_calc_characters_v1';
 
 function bootLibrary(){
   const A = AnvilEngine, L = LibraryEngine;
@@ -2344,6 +2585,304 @@ function bootLibrary(){
   renderPendingEnch(); renderPendingReq(); render();
 }
 
+/* ----------------------------- CHARACTER UI ---------------------------- */
+function bootCharacters(){
+  const A = AnvilEngine, G = GearEngine, C = CharacterEngine;
+  const S = {characters:[], activeId:null, pendingEnch:[], pendingStats:[], itemTypeId:'sword', materialId:'iron'};
+
+  function loadCharacters(){
+    try {
+      const raw = localStorage.getItem(CHAR_LS_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (Array.isArray(data.characters)) S.characters = data.characters;
+      if (data.activeId) S.activeId = data.activeId;
+    } catch (e){ /* corrupt or unavailable storage — start from an empty roster */ }
+  }
+  function saveCharacters(){
+    try {
+      localStorage.setItem(CHAR_LS_KEY, JSON.stringify({characters:S.characters, activeId:S.activeId}));
+    } catch (e){ /* storage unavailable (private browsing, quota) — session-only for this load */ }
+  }
+
+  const newName = $('#char-new-name'), newMsg = $('#char-new-msg'),
+        itemNone = $('#char-item-none'), itemForm = $('#char-item-form'),
+        selType = $('#char-item-type'), typeIcon = $('#char-item-icon'),
+        selMaterial = $('#char-item-material'), materialWrap = $('#char-item-material-wrap'),
+        itemName = $('#char-item-name'), itemQty = $('#char-item-qty'),
+        selEnch = $('#char-item-ench'), selEnchLvl = $('#char-item-ench-lvl'),
+        statLabel = $('#char-item-stat-label'), statValue = $('#char-item-stat-value'),
+        itemNotes = $('#char-item-notes'), itemMsg = $('#char-item-msg'),
+        ioMsg = $('#char-io-msg'), importFile = $('#char-import-file'), importPaste = $('#char-import-paste');
+
+  const activeCharacter = () => S.characters.find(c => c.id === S.activeId) || null;
+  function showMsg(node, text){ node.textContent = text; node.hidden = false; }
+  function clearMsg(node){ node.hidden = true; node.textContent = ''; }
+
+  /* ---- static + item-type-dependent select population ---- */
+  for (const [id, it] of Object.entries(A.ITEMS)) selType.append(el('option', {value:id, text:it.name}));
+  selType.value = S.itemTypeId;
+
+  function syncItemIcon(){ typeIcon.src = ICONS[G.iconKeyFor(S.itemTypeId, S.materialId)] || ICONS[S.itemTypeId] || BLANK_ICON; }
+  function fillMaterialSelect(){
+    const materials = G.materialsFor(S.itemTypeId);
+    materialWrap.hidden = materials.length === 0;
+    if (!materials.length) return;
+    if (!materials.includes(S.materialId)) S.materialId = materials.includes('iron') ? 'iron' : materials[0];
+    selMaterial.textContent = '';
+    for (const m of materials) selMaterial.append(el('option', {value:m, text:G.materialName(m)}));
+    selMaterial.value = S.materialId;
+  }
+  function fillEnchSelect(){
+    selEnch.textContent = '';
+    for (const [id, e] of Object.entries(A.ENCH))
+      if (A.applies(id, S.itemTypeId)) selEnch.append(el('option', {value:id, text:e.name}));
+    fillLvlSelect();
+  }
+  function fillLvlSelect(){
+    selEnchLvl.textContent = '';
+    const max = A.ENCH[selEnch.value] ? A.ENCH[selEnch.value].max : 1;
+    for (let l = 1; l <= max; l++) selEnchLvl.append(el('option', {value:l, text:ROMAN[l]}));
+  }
+  fillMaterialSelect(); syncItemIcon(); fillEnchSelect();
+
+  function renderPendingEnch(){
+    const ul = $('#char-item-ench-list');
+    ul.textContent = '';
+    S.pendingEnch.forEach((e, i) => ul.append(el('li', {},
+      el('span', {}, `${A.ENCH[e.id].name} ${ROMAN[e.lvl]}`),
+      el('button', {class:'mini', type:'button', 'aria-label':`Remove ${A.ENCH[e.id].name}`,
+        onclick:() => { S.pendingEnch.splice(i, 1); renderPendingEnch(); }}, '✕'))));
+  }
+  function renderPendingStats(){
+    const ul = $('#char-item-stat-list');
+    ul.textContent = '';
+    S.pendingStats.forEach((s, i) => ul.append(el('li', {},
+      el('span', {}, `${s.label}: ${s.value}`),
+      el('button', {class:'mini', type:'button', 'aria-label':`Remove stat ${s.label}`,
+        onclick:() => { S.pendingStats.splice(i, 1); renderPendingStats(); }}, '✕'))));
+  }
+
+  /* ---- roster ---- */
+  function characterRow(ch){
+    const isActive = ch.id === S.activeId;
+    const nameInput = el('input', {type:'text', value:ch.name, 'aria-label':'Character name'});
+    nameInput.addEventListener('change', () => {
+      ch.name = nameInput.value.trim() || 'Unnamed'; syncAndRender();
+    });
+    const notesInput = el('input', {type:'text', value:ch.notes, 'aria-label':'Notes'});
+    notesInput.addEventListener('change', () => { ch.notes = notesInput.value; syncAndRender(); });
+    const selectBtn = el('button', {class:'mini', type:'button',
+      onclick:() => { S.activeId = ch.id; syncAndRender(); }}, isActive ? 'Editing' : 'Select');
+    const delBtn = el('button', {class:'mini', type:'button', 'aria-label':`Delete ${ch.name}`,
+      onclick:() => {
+        S.characters = S.characters.filter(x => x.id !== ch.id);
+        if (S.activeId === ch.id) S.activeId = S.characters[0] ? S.characters[0].id : null;
+        syncAndRender();
+      }}, '✕');
+    const equippedCount = Object.values(C.equippedItems(ch)).filter(Boolean).length;
+    return el('li', {class:'lib-card'},
+      el('div', {class:'hd'},
+        el('span', {class:'ttl'}, nameInput),
+        isActive ? el('span', {class:'badge badge-active', text:'Editing'}) : null),
+      el('p', {class:'sub', text:`${ch.items.length} item(s) · ${equippedCount} equipped`}),
+      el('div', {class:'fields'},
+        el('label', {}, 'Notes', notesInput),
+        el('label', {}, ' ', selectBtn),
+        el('label', {}, ' ', delBtn)));
+  }
+  function renderRoster(){
+    const ul = $('#char-roster-list');
+    ul.textContent = '';
+    if (!S.characters.length){ ul.append(el('li', {class:'empty', text:'No characters yet — create one above.'})); return; }
+    S.characters.forEach(ch => ul.append(characterRow(ch)));
+  }
+
+  /* ---- add-item form ---- */
+  function renderItemFormAvailability(){
+    const active = activeCharacter();
+    itemNone.hidden = !!active;
+    itemForm.hidden = !active;
+  }
+
+  /* ---- equipment + inventory ---- */
+  function itemIcon(it){ return ICONS[G.iconKeyFor(it.itemType, it.material)] || ICONS[it.itemType] || BLANK_ICON; }
+  function itemTitle(it){
+    const base = A.ITEMS[it.itemType] ? A.ITEMS[it.itemType].name : it.itemType;
+    const material = it.material ? G.materialName(it.material) + ' ' : '';
+    return it.customName ? `${it.customName} — ${material}${base}` : `${material}${base}`;
+  }
+
+  function itemRow(character, it){
+    const nameInput = el('input', {type:'text', value:it.customName, 'aria-label':'Custom name'});
+    nameInput.addEventListener('change', () => {
+      updateActive(ch => C.updateItem(ch, it.id, {customName:nameInput.value}));
+    });
+    const qtyInput = el('input', {type:'number', min:'1', max:'999', step:'1', value:String(it.qty), 'aria-label':'Quantity'});
+    qtyInput.addEventListener('change', () => {
+      updateActive(ch => C.updateItem(ch, it.id, {qty:Math.max(1, parseInt(qtyInput.value, 10) || 1)}));
+    });
+    const notesInput = el('input', {type:'text', value:it.notes, 'aria-label':'Notes'});
+    notesInput.addEventListener('change', () => {
+      updateActive(ch => C.updateItem(ch, it.id, {notes:notesInput.value}));
+    });
+    const slotSel = el('select', {'aria-label':'Equipment slot'});
+    slotSel.append(el('option', {value:'', text:'Not equipped'}));
+    C.SLOTS.forEach(slot => slotSel.append(el('option', {value:slot, text:C.SLOT_LABEL[slot]})));
+    slotSel.value = it.slot || '';
+    slotSel.addEventListener('change', () => {
+      updateActive(ch => slotSel.value ? C.equipItem(ch, it.id, slotSel.value) : C.unequipItem(ch, it.id));
+    });
+    const delBtn = el('button', {class:'mini', type:'button', 'aria-label':`Delete ${itemTitle(it)}`,
+      onclick:() => updateActive(ch => C.removeItem(ch, it.id))}, '✕');
+
+    const enchText = Object.entries(it.ench).map(([id, l]) => `${A.ENCH[id].name} ${ROMAN[l]}`).join(', ');
+    const statsText = it.stats.map(s => `${s.label}: ${s.value}`).join(' · ');
+
+    const card = el('li', {class:'lib-card'},
+      el('div', {class:'hd'},
+        el('span', {class:'ttl'}, iconImg(itemIcon(it)), itemTitle(it)),
+        it.slot ? el('span', {class:'badge badge-equipped', text:C.SLOT_LABEL[it.slot]}) : null),
+      el('div', {class:'fields'},
+        el('label', {}, 'Custom name', nameInput),
+        el('label', {}, 'Qty', qtyInput),
+        el('label', {}, 'Slot', slotSel),
+        el('label', {}, 'Notes', notesInput),
+        el('label', {}, ' ', delBtn)));
+    if (enchText) card.append(el('p', {class:'sub', text:'Enchantments: ' + enchText}));
+    if (statsText) card.append(el('p', {class:'sub', text:'Stats: ' + statsText}));
+    return card;
+  }
+
+  function renderEquipOut(){
+    const out = $('#char-equip-out');
+    out.textContent = '';
+    const active = activeCharacter();
+    if (!active){
+      out.append(el('p', {class:'empty', text:'Select or create a character to see their gear and inventory.'}));
+      return;
+    }
+    const equipped = C.equippedItems(active);
+    const slotChips = el('ul', {class:'chips'});
+    C.SLOTS.forEach(slot => {
+      const it = equipped[slot];
+      slotChips.append(el('li', {},
+        el('span', {}, `${C.SLOT_LABEL[slot]}: ${it ? itemTitle(it) : '— empty —'}`),
+        it ? el('button', {class:'mini', type:'button', 'aria-label':`Unequip ${C.SLOT_LABEL[slot]}`,
+          onclick:() => updateActive(ch => C.unequipItem(ch, it.id))}, 'Unequip') : null));
+    });
+    out.append(el('h3', {text:'Equipped'}), slotChips);
+    out.append(el('h3', {text:'Inventory'}));
+    if (!active.items.length){
+      out.append(el('p', {class:'empty', text:'No inventory items yet — add one on the left.'}));
+      return;
+    }
+    const ul = el('ul', {class:'lib-list'});
+    active.items.forEach(it => ul.append(itemRow(active, it)));
+    out.append(ul);
+  }
+
+  /* ---- mutation + persistence plumbing ---- */
+  function updateActive(fn){
+    const active = activeCharacter();
+    if (!active) return;
+    const updated = fn(active);
+    S.characters = S.characters.map(c => c.id === updated.id ? updated : c);
+    syncAndRender();
+  }
+  function render(){ renderRoster(); renderItemFormAvailability(); renderEquipOut(); }
+  function syncAndRender(){ saveCharacters(); render(); }
+
+  /* ---- events: roster ---- */
+  $('#char-new-add').addEventListener('click', () => {
+    const name = newName.value.trim();
+    if (!name){ showMsg(newMsg, 'Enter a character name first.'); return; }
+    const ch = C.makeCharacter({name});
+    S.characters.push(ch);
+    S.activeId = ch.id;
+    newName.value = ''; clearMsg(newMsg);
+    syncAndRender();
+  });
+
+  /* ---- events: add-item form ---- */
+  selType.addEventListener('change', () => {
+    S.itemTypeId = selType.value;
+    fillMaterialSelect(); syncItemIcon(); fillEnchSelect();
+  });
+  selMaterial.addEventListener('change', () => { S.materialId = selMaterial.value; syncItemIcon(); });
+  selEnch.addEventListener('change', fillLvlSelect);
+  $('#char-item-ench-add').addEventListener('click', () => {
+    const id = selEnch.value, lvl = parseInt(selEnchLvl.value, 10);
+    const existing = S.pendingEnch.find(e => e.id === id);
+    if (existing) existing.lvl = lvl; else S.pendingEnch.push({id, lvl});
+    clearMsg(itemMsg); renderPendingEnch();
+  });
+  $('#char-item-stat-add').addEventListener('click', () => {
+    const label = statLabel.value.trim(), value = statValue.value.trim();
+    if (!label || !value){ showMsg(itemMsg, 'A custom stat needs both a label and a value.'); return; }
+    S.pendingStats.push({label, value});
+    statLabel.value = ''; statValue.value = '';
+    clearMsg(itemMsg); renderPendingStats();
+  });
+  $('#char-item-add').addEventListener('click', () => {
+    if (!activeCharacter()){ showMsg(itemMsg, 'Create or select a character first.'); return; }
+    const ench = Object.fromEntries(S.pendingEnch.map(e => [e.id, e.lvl]));
+    updateActive(ch => C.addItem(ch, {
+      itemType:S.itemTypeId, material:G.materialsFor(S.itemTypeId).length ? S.materialId : null,
+      customName:itemName.value.trim(), qty:parseInt(itemQty.value, 10) || 1,
+      ench, stats:S.pendingStats, notes:itemNotes.value.trim(),
+    }));
+    S.pendingEnch = []; S.pendingStats = [];
+    itemName.value = ''; itemQty.value = '1'; itemNotes.value = '';
+    clearMsg(itemMsg); renderPendingEnch(); renderPendingStats();
+  });
+
+  /* ---- events: import / export ---- */
+  function downloadJson(filename, data){
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = el('a', {href:url, download:filename});
+    document.body.append(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+  $('#char-export-one').addEventListener('click', () => {
+    const active = activeCharacter();
+    if (!active){ showMsg(ioMsg, 'Select a character to export first.'); return; }
+    clearMsg(ioMsg);
+    downloadJson(`${active.name.replace(/[^\w\-]+/g, '_') || 'character'}.json`, C.exportCharacter(active));
+  });
+  $('#char-export-all').addEventListener('click', () => {
+    if (!S.characters.length){ showMsg(ioMsg, 'No characters to export yet.'); return; }
+    clearMsg(ioMsg);
+    downloadJson('minecraft_calc_characters.json', C.exportCharacters(S.characters));
+  });
+  function runImport(text){
+    const result = C.importPayload(text, S.characters);
+    if (!result.ok){ showMsg(ioMsg, result.errors.join(' ')); return; }
+    S.characters.push(...result.characters);
+    S.activeId = result.characters[0].id;
+    clearMsg(ioMsg);
+    if (result.errors.length) showMsg(ioMsg, `Imported ${result.characters.length} character(s). ${result.errors.join(' ')}`);
+    importPaste.value = ''; importFile.value = '';
+    syncAndRender();
+  }
+  $('#char-import-btn').addEventListener('click', () => {
+    if (importFile.files && importFile.files[0]){
+      const reader = new FileReader();
+      reader.onload = () => runImport(reader.result);
+      reader.onerror = () => showMsg(ioMsg, 'Could not read the selected file.');
+      reader.readAsText(importFile.files[0]);
+      return;
+    }
+    if (importPaste.value.trim()){ runImport(importPaste.value.trim()); return; }
+    showMsg(ioMsg, 'Choose a file or paste exported JSON first.');
+  });
+
+  loadCharacters();
+  if (!S.characters.find(c => c.id === S.activeId)) S.activeId = S.characters[0] ? S.characters[0].id : null;
+  renderPendingEnch(); renderPendingStats(); render();
+}
+
 /* ------------------------------- TABS -------------------------------- */
 function bootTabs(){
   const tabs = [...document.querySelectorAll('[role=tab]')];
@@ -2373,7 +2912,7 @@ function bootTabs(){
 /* ------------------------------- BOOT -------------------------------- */
 if (HAS_DOM){
   const boot = () => {
-    bootTabs(); bootAnvil(); bootBrew(); bootLibrary();
+    bootTabs(); bootAnvil(); bootBrew(); bootLibrary(); bootCharacters();
     const rows = run_self_tests();
     const failed = rows.filter(r => r.pass !== 'PASS').length;
     const badge = document.getElementById('test-badge');
@@ -2389,7 +2928,7 @@ if (HAS_DOM){
 
 /* Node/test harness export — engines are DOM-free by construction. */
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = {AnvilEngine, BrewEngine, GearEngine, LibraryEngine, run_self_tests};
+  module.exports = {AnvilEngine, BrewEngine, GearEngine, LibraryEngine, CharacterEngine, run_self_tests};
 </script>
 </body>
 </html>
