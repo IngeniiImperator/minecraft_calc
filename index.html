@@ -277,6 +277,7 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
             <img id="an-item-icon" class="icon-preview" alt="">
           </div>
         </label>
+        <p class="empty" id="an-item-desc" style="margin:-6px 0 12px"></p>
         <label class="f" id="an-material-wrap"><span class="lab">Material</span>
           <select id="an-material"></select>
         </label>
@@ -392,11 +393,24 @@ const AnvilEngine = (() => {
   const TOOLS = ['pickaxe','shovel','axe','hoe'];
 
   const ITEMS = {
-    sword:{name:'Sword'}, axe:{name:'Axe'}, pickaxe:{name:'Pickaxe'}, shovel:{name:'Shovel'},
-    hoe:{name:'Hoe'}, mace:{name:'Mace'}, helmet:{name:'Helmet'}, chestplate:{name:'Chestplate'},
-    leggings:{name:'Leggings'}, boots:{name:'Boots'}, elytra:{name:'Elytra'}, bow:{name:'Bow'},
-    crossbow:{name:'Crossbow'}, trident:{name:'Trident'}, fishing_rod:{name:'Fishing Rod'},
-    shears:{name:'Shears'}, shield:{name:'Shield'}, book:{name:'Enchanted Book'},
+    sword:{name:'Sword', desc:'Primary melee weapon — fast swings, moderate reach, and a wide "sweep" hit on a fully-charged strike that damages nearby enemies too.'},
+    axe:{name:'Axe', desc:'Slow, heavy-hitting melee weapon and the tool for chopping wood; a well-timed hit can also disable a raised shield.'},
+    pickaxe:{name:'Pickaxe', desc:'Mines stone, ore, and metal blocks — required to break most of them at all. Works, but weak, as a weapon.'},
+    shovel:{name:'Shovel', desc:'Digs dirt, sand, gravel, and similar blocks; can also turn a grass block into a path by using it on the side.'},
+    hoe:{name:'Hoe', desc:'Tills dirt into farmland and harvests certain crops instantly. Fast swing, but the lowest melee damage of any weapon.'},
+    mace:{name:'Mace', desc:'Heavy, slow melee weapon whose damage scales with how far you fall before landing the hit — Density and Wind Burst amplify that fall-damage playstyle.'},
+    helmet:{name:'Helmet', desc:'Head armor slot — contributes armor points and toughness, and holds enchantments like Respiration and Aqua Affinity.'},
+    chestplate:{name:'Chestplate', desc:'Torso armor slot — usually contributes the most armor points of the four pieces.'},
+    leggings:{name:'Leggings', desc:'Leg armor slot — the only slot for Swift Sneak, alongside the general armor enchantments.'},
+    boots:{name:'Boots', desc:'Foot armor slot — holds movement enchantments like Depth Strider, Frost Walker, and Soul Speed.'},
+    elytra:{name:'Elytra', desc:'Worn in the chestplate slot to glide — 0 armor and 0 toughness, traded entirely for controlled falling flight.'},
+    bow:{name:'Bow', desc:'Ranged weapon — hold to charge the shot; damage and range scale with how long it was drawn before release.'},
+    crossbow:{name:'Crossbow', desc:'Ranged weapon that loads a shot ahead of time and fires it instantly on demand, trading draw-on-release for a reload pause instead.'},
+    trident:{name:'Trident', desc:'Melee weapon that can also be thrown as a ranged attack; Riptide launches the wielder toward the throw point while in water or rain.'},
+    fishing_rod:{name:'Fishing Rod', desc:'Casts a bobber to fish, or hooks and reels in mobs/items/players from a distance. Not built for combat.'},
+    shears:{name:'Shears', desc:'Harvests wool, leaves, cobwebs, and certain mob drops (like shearing sheep without killing them). Very weak in combat.'},
+    shield:{name:'Shield', desc:'Raise to block most melee damage and some projectiles; axes can disable it briefly on a well-timed hit.'},
+    book:{name:'Enchanted Book', desc:'Carries enchantments without being worn or wielded itself — combine it onto gear at an anvil to transfer them.'},
   };
 
   // multipliers: cost per final level when the sacrifice is an item / a book.
@@ -1356,7 +1370,7 @@ function bootAnvil(){
   const selItem = $('#an-item'), inUses = $('#an-uses'),
         selHaveE = $('#an-have-ench'), selHaveL = $('#an-have-lvl'),
         selBookE = $('#an-book-ench'), selBookL = $('#an-book-lvl'),
-        out = $('#an-out'), itemIcon = $('#an-item-icon'),
+        out = $('#an-out'), itemIcon = $('#an-item-icon'), itemDesc = $('#an-item-desc'),
         selMaterial = $('#an-material'), materialWrap = $('#an-material-wrap'),
         statsCard = $('#an-stats-card'), statsOut = $('#an-stats-out');
 
@@ -1365,6 +1379,7 @@ function bootAnvil(){
   selItem.value = S.itemId;
 
   function syncIcon(){ itemIcon.src = ICONS[G.iconKeyFor(S.itemId, S.materialId)] || ICONS[S.itemId] || BLANK_ICON; }
+  function syncDesc(){ itemDesc.textContent = A.ITEMS[S.itemId].desc; }
 
   function fillMaterialSelect(){
     const materials = G.materialsFor(S.itemId);
@@ -1377,6 +1392,7 @@ function bootAnvil(){
   }
   fillMaterialSelect();
   syncIcon();
+  syncDesc();
 
   function fillEnchSelect(sel){
     sel.textContent = '';
@@ -1504,7 +1520,7 @@ function bootAnvil(){
 
   selItem.addEventListener('change', () => {
     S.itemId = selItem.value;
-    fillMaterialSelect(); syncIcon();
+    fillMaterialSelect(); syncIcon(); syncDesc();
     S.have = S.have.filter(h => A.applies(h.id, S.itemId));
     S.books = S.books.filter(b => A.applies(b.id, S.itemId));
     fillEnchSelect(selHaveE); fillEnchSelect(selBookE); render();
