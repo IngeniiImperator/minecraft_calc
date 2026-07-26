@@ -58,17 +58,22 @@ header.masthead{display:flex; flex-wrap:wrap; gap:22px; align-items:flex-end;
   justify-content:space-between; margin-bottom:26px}
 .brand h1{
   margin:0; font-size:clamp(26px,4.4vw,42px); letter-spacing:.06em; line-height:1.05;
-  text-transform:uppercase; font-weight:800;
+  text-transform:uppercase; font-weight:800; white-space:nowrap;
   text-shadow:3px 3px 0 rgba(0,0,0,.55);
 }
 .brand h1 .hl{color:var(--accent-anvil)}
-.brand h1 .h2l{color:var(--accent-brew)}
-.brand h1 .h3l{color:var(--accent-lib)}
-.brand h1 .h4l{color:var(--accent-char)}
 .brand .sub{margin:6px 0 0; color:var(--dim); font-size:13px; letter-spacing:.04em}
+.brand .modlist{
+  list-style:none; margin:12px 0 0; padding:0; display:flex; flex-wrap:wrap; gap:7px;
+}
+.brand .modlist li{
+  font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--mc); background:var(--panel-2);
+  border:2px solid; border-color:var(--mc); padding:4px 9px 3px;
+}
 
 /* ---------- tabs (hotbar) ---------- */
-.tabs{display:flex; gap:10px}
+.tabs{display:flex; flex-wrap:wrap; gap:10px; max-width:100%}
 .tab{
   appearance:none; cursor:pointer; font:inherit; font-weight:700; letter-spacing:.05em;
   text-transform:uppercase; font-size:13px;
@@ -297,8 +302,14 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
 
 <header class="masthead">
   <div class="brand">
-    <h1>Minecraft <span class="hl">Calc</span><br><span aria-hidden="true">▚</span> <span class="hl">Anvil</span> + <span class="h2l">Brewing</span> + <span class="h3l">Library</span> + <span class="h4l">Characters</span></h1>
+    <h1><span aria-hidden="true">▚</span> Minecraft <span class="hl">Calc</span></h1>
     <p class="sub">Java Edition 1.21.x · deterministic planners · single file, no network</p>
+    <ul class="modlist" aria-hidden="true">
+      <li style="--mc:var(--accent-anvil)">Anvil</li>
+      <li style="--mc:var(--accent-brew)">Brewing</li>
+      <li style="--mc:var(--accent-lib)">Library</li>
+      <li style="--mc:var(--accent-char)">Characters</li>
+    </ul>
   </div>
   <nav class="tabs" role="tablist" aria-label="Calculator modules">
     <button class="tab" id="tab-anvil" role="tab" aria-selected="true" aria-controls="panel-anvil">
