@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<title>Minecraft Calc — Anvil Combiner, Brewing Planner &amp; Book Library</title>
+<title>Minecraft Calc — Anvil Combiner, Brewing Planner, Book Library &amp; Character Profiles</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%230e0f13"/><rect x="3" y="3" width="10" height="3" fill="%23a7b0c0"/><rect x="6" y="6" width="4" height="3" fill="%23808a9c"/><rect x="4" y="9" width="8" height="4" fill="%23a7b0c0"/><rect x="12" y="10" width="2" height="2" fill="%23b78aff"/></svg>'>
 <style>
 /* ================================================================
@@ -30,6 +30,7 @@
   --accent-anvil:#8fe14d;            /* experience green */
   --accent-brew: #b78aff;            /* potion violet — the brewing module's one added accent */
   --accent-lib:  #f2c94c;            /* enchanted-book gold — the library module's one added accent */
+  --accent-char: #6fc3ff;            /* diamond blue — the character-profiles module's one added accent */
   --accent:      var(--accent-anvil);
   --mono: ui-monospace,"Cascadia Code","JetBrains Mono","IBM Plex Mono","SF Mono",
           Menlo,Consolas,"Liberation Mono",monospace;
@@ -63,6 +64,7 @@ header.masthead{display:flex; flex-wrap:wrap; gap:22px; align-items:flex-end;
 .brand h1 .hl{color:var(--accent-anvil)}
 .brand h1 .h2l{color:var(--accent-brew)}
 .brand h1 .h3l{color:var(--accent-lib)}
+.brand h1 .h4l{color:var(--accent-char)}
 .brand .sub{margin:6px 0 0; color:var(--dim); font-size:13px; letter-spacing:.04em}
 
 /* ---------- tabs (hotbar) ---------- */
@@ -86,12 +88,14 @@ header.masthead{display:flex; flex-wrap:wrap; gap:22px; align-items:flex-end;
 #tab-brew{--tab-accent:var(--accent-brew)}
 #tab-anvil{--tab-accent:var(--accent-anvil)}
 #tab-lib{--tab-accent:var(--accent-lib)}
+#tab-char{--tab-accent:var(--accent-char)}
 
 /* ---------- module panels ---------- */
 section[role="tabpanel"]{outline:none}
 #panel-anvil{--accent:var(--accent-anvil)}
 #panel-brew {--accent:var(--accent-brew)}
 #panel-lib  {--accent:var(--accent-lib)}
+#panel-char {--accent:var(--accent-char)}
 .module-grid{display:grid; grid-template-columns:minmax(320px,380px) 1fr; gap:22px; align-items:start}
 
 .card{
@@ -114,11 +118,13 @@ label.f > .lab, .lab{
   display:block; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
   color:var(--faint); margin-bottom:5px;
 }
-select,input[type=number],input[type=text]{
+select,input[type=number],input[type=text],textarea{
   width:100%; font:inherit; color:var(--text); background:var(--slot);
   border:2px solid; border-color:var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
   padding:8px 10px; border-radius:0;
 }
+textarea{font-size:12.5px; resize:vertical; min-height:96px}
+input[type=file]{width:100%; font:inherit; font-size:12.5px; color:var(--dim)}
 input[type=number]{appearance:textfield}
 select:focus-visible,input:focus-visible,button:focus-visible,[role=tab]:focus-visible{
   outline:2px solid var(--accent); outline-offset:2px;
@@ -245,6 +251,18 @@ ul.lib-list{list-style:none; margin:10px 0 0; padding:0; display:flex; flex-dire
   border:2px solid; border-color:var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark)}
 .progress > i{display:block; height:100%; background:var(--accent-lib)}
 
+/* ---------- character profiles: equipment slot grid ---------- */
+.slot-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-top:10px}
+.slot-cell{
+  background:var(--slot); padding:10px 12px; min-height:74px;
+  border:2px solid; border-color:var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+}
+.slot-cell.filled{border-color:var(--accent)}
+.slot-cell .slab{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); margin-bottom:6px}
+.slot-cell .sitem{font-size:13.5px; display:flex; align-items:center}
+.slot-cell .sempty{color:var(--faint); font-style:italic; font-size:12.5px}
+.stat-line{color:var(--accent); font-size:12.5px}
+
 /* hints / errors / warnings */
 .hints{margin:14px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px}
 .hints li{font-size:13px; color:var(--dim); padding:8px 10px; background:var(--panel-2);
@@ -255,6 +273,8 @@ ul.lib-list{list-style:none; margin:10px 0 0; padding:0; display:flex; flex-dire
   padding:10px 12px; font-size:13.5px; margin:0 0 14px;
 }
 .msg-warn{background:var(--panel-2); border:2px solid #c9a227; color:#e6c453;
+  padding:10px 12px; font-size:13px; margin:12px 0 0}
+.msg-ok{background:var(--panel-2); border:2px solid var(--ok); color:var(--ok);
   padding:10px 12px; font-size:13px; margin:12px 0 0}
 
 /* footer */
@@ -277,7 +297,7 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
 
 <header class="masthead">
   <div class="brand">
-    <h1>Minecraft <span class="hl">Calc</span><br><span aria-hidden="true">▚</span> <span class="hl">Anvil</span> + <span class="h2l">Brewing</span> + <span class="h3l">Library</span></h1>
+    <h1>Minecraft <span class="hl">Calc</span><br><span aria-hidden="true">▚</span> <span class="hl">Anvil</span> + <span class="h2l">Brewing</span> + <span class="h3l">Library</span> + <span class="h4l">Characters</span></h1>
     <p class="sub">Java Edition 1.21.x · deterministic planners · single file, no network</p>
   </div>
   <nav class="tabs" role="tablist" aria-label="Calculator modules">
@@ -287,6 +307,8 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
       <span class="dot" aria-hidden="true"></span>Brewing Planner</button>
     <button class="tab" id="tab-lib" role="tab" aria-selected="false" aria-controls="panel-lib" tabindex="-1">
       <span class="dot" aria-hidden="true"></span>Book Library</button>
+    <button class="tab" id="tab-char" role="tab" aria-selected="false" aria-controls="panel-char" tabindex="-1">
+      <span class="dot" aria-hidden="true"></span>Characters</button>
   </nav>
 </header>
 
@@ -483,10 +505,98 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
     </div>
   </div>
 </section>
+
+<!-- ====================== CHARACTER PROFILES ====================== -->
+<section id="panel-char" role="tabpanel" aria-labelledby="tab-char" data-module="char" hidden>
+  <div class="module-grid">
+    <div>
+      <div class="card">
+        <h2>Characters</h2>
+        <label class="f"><span class="lab">New character name</span>
+          <input id="ch-new-name" type="text" placeholder="Ranger"></label>
+        <p class="msg-err" id="ch-new-msg" hidden></p>
+        <button class="btn" id="ch-new-btn" type="button">Create character</button>
+        <label class="f" style="margin-top:16px"><span class="lab">Active character</span>
+          <select id="ch-select"></select></label>
+        <label class="f"><span class="lab">Rename</span>
+          <input id="ch-name" type="text" placeholder="—"></label>
+        <label class="f"><span class="lab">Character notes</span>
+          <input id="ch-notes" type="text" placeholder="optional"></label>
+        <button class="btn" id="ch-delete" type="button">Delete character</button>
+      </div>
+      <div class="card">
+        <h2>Add an item</h2>
+        <div class="row" style="align-items:flex-end">
+          <label class="f"><span class="lab">Base item</span><select id="ch-item"></select></label>
+          <img id="ch-item-icon" class="icon-preview" alt="" style="margin-bottom:12px">
+        </div>
+        <label class="f" id="ch-material-wrap"><span class="lab">Material</span>
+          <select id="ch-material"></select></label>
+        <label class="f"><span class="lab">Custom name</span>
+          <input id="ch-item-name" type="text" placeholder="Woodcutting Axe"></label>
+        <h3>Enchantments</h3>
+        <div class="row">
+          <label class="f"><span class="lab">Enchantment</span><select id="ch-ench"></select></label>
+          <label class="f" style="max-width:90px"><span class="lab">Level</span><select id="ch-lvl"></select></label>
+        </div>
+        <button class="btn" id="ch-ench-add" type="button">Add enchantment</button>
+        <ul class="chips" id="ch-ench-list"></ul>
+        <h3>Custom stats</h3>
+        <div class="row">
+          <label class="f"><span class="lab">Stat</span>
+            <input id="ch-stat-label" type="text" placeholder="Harvest Speed"></label>
+          <label class="f" style="max-width:110px"><span class="lab">Value</span>
+            <input id="ch-stat-value" type="text" placeholder="+15"></label>
+        </div>
+        <button class="btn" id="ch-stat-add" type="button">Add stat</button>
+        <ul class="chips" id="ch-stat-list"></ul>
+        <label class="f" style="margin-top:12px"><span class="lab">Item notes</span>
+          <input id="ch-item-notes" type="text" placeholder="optional"></label>
+        <p class="msg-err" id="ch-item-msg" hidden></p>
+        <button class="btn" id="ch-item-add" type="button">Add to inventory</button>
+      </div>
+      <div class="card">
+        <h2>Import / Export</h2>
+        <label class="f"><span class="lab">Export scope</span>
+          <select id="ch-ex-scope">
+            <option value="all">All characters</option>
+            <option value="active">Active character only</option>
+          </select></label>
+        <button class="btn" id="ch-ex-download" type="button">Download profiles (.json)</button>
+        <button class="btn" id="ch-ex-show" type="button" style="margin-top:10px">Show JSON to copy</button>
+        <p class="msg-err" id="ch-ex-msg" hidden></p>
+        <textarea id="ch-ex-out" readonly hidden aria-label="Exported profile JSON" style="margin-top:10px"></textarea>
+        <h3>Import</h3>
+        <label class="f"><span class="lab">From file</span>
+          <input id="ch-im-file" type="file" accept=".json,application/json"></label>
+        <label class="f"><span class="lab">…or paste exported JSON</span>
+          <textarea id="ch-im-text" placeholder='{"format":"mc-calc-character-profiles", …}'></textarea></label>
+        <label class="f"><span class="lab">Mode</span>
+          <select id="ch-im-mode">
+            <option value="merge">Merge — update matching characters, add new ones</option>
+            <option value="replace">Replace — overwrite everything with the file</option>
+          </select></label>
+        <p class="msg-err" id="ch-im-msg" hidden></p>
+        <p class="msg-ok" id="ch-im-ok" hidden></p>
+        <button class="btn" id="ch-im-btn" type="button">Import profiles</button>
+      </div>
+    </div>
+    <div>
+      <div class="card" aria-live="polite">
+        <h2>Equipment</h2>
+        <div id="ch-equip-out"></div>
+      </div>
+      <div class="card" aria-live="polite">
+        <h2>Inventory</h2>
+        <div id="ch-inv-out"></div>
+      </div>
+    </div>
+  </div>
+</section>
 </main>
 
 <footer>
-  <span>Anvil: enchant-combining only (repairs &amp; renames out of scope) · Brewing: durations shown are display-only flavor · Library: saved locally in this browser only, nothing leaves your device.</span>
+  <span>Anvil: enchant-combining only (repairs &amp; renames out of scope) · Brewing: durations shown are display-only flavor · Library &amp; Characters: saved locally in this browser only, nothing leaves your device · Characters can be exported to / imported from a JSON file.</span>
   <span id="test-badge">self-tests: pending…</span>
   <span style="flex-basis:100%">Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft. Item icons are Minecraft textures used for identification only.</span>
 </footer>
@@ -1328,8 +1438,179 @@ const LibraryEngine = (() => {
 })();
 
 /* =====================================================================
- *  SELF-TESTS — §5: run ALL FOUR suites, console.table all results.
- *  Anvil T1–T5, Gear W1–W10, brewing B1–B5, library L1–L5 (§9).
+ *  CHARACTER ENGINE — independent pure-function namespace.
+ *  Persistent character profiles: per-character inventories where every
+ *  item instance keeps its own identity (custom name, notes, free-form
+ *  stats) even when several instances share a base item type, plus a
+ *  versioned, validated import/export format so profiles survive book
+ *  merges and move between projects. Like GearEngine and LibraryEngine,
+ *  it treats AnvilEngine's item/enchantment ids as plain data — the UI
+ *  layer does all name lookups.
+ * ===================================================================== */
+const CharacterEngine = (() => {
+  // Versioned envelope for exported files. `format` guards against
+  // feeding the importer an unrelated JSON file; `version` lets a future
+  // schema change stay readable (older files always import; files newer
+  // than this build are rejected with a clear message instead of being
+  // half-parsed).
+  const FORMAT = 'mc-calc-character-profiles';
+  const VERSION = 1;
+
+  const SLOTS = ['mainhand', 'offhand', 'head', 'chest', 'legs', 'feet'];
+  const SLOT_LABEL = {mainhand:'Main Hand', offhand:'Off Hand',
+    head:'Head', chest:'Chest', legs:'Legs', feet:'Feet'};
+
+  let seq = 0;
+  const nextId = prefix => `${prefix}_${Date.now().toString(36)}_${(seq++).toString(36)}`;
+
+  /** Equipment slots a base item type may occupy: armor is locked to its
+      own slot, elytra shares the chest slot, everything else is held. */
+  function slotsFor(itemId){
+    if (itemId === 'helmet') return ['head'];
+    if (itemId === 'chestplate' || itemId === 'elytra') return ['chest'];
+    if (itemId === 'leggings') return ['legs'];
+    if (itemId === 'boots') return ['feet'];
+    return ['mainhand', 'offhand'];
+  }
+
+  const cleanStat = s => ({
+    label: String((s && s.label) || '').trim(),
+    value: String((s && s.value) || '').trim(),
+  });
+
+  function makeItem(data = {}){
+    const itemId = typeof data.itemId === 'string' && data.itemId ? data.itemId : 'sword';
+    const slot = SLOTS.includes(data.equippedSlot) ? data.equippedSlot : null;
+    return {
+      id: typeof data.id === 'string' && data.id ? data.id : nextId('ci'),
+      itemId,
+      materialId: typeof data.materialId === 'string' && data.materialId ? data.materialId : null,
+      customName: String(data.customName || ''),
+      notes: String(data.notes || ''),
+      ench: Object.fromEntries(Object.entries(data.ench || {})
+        .filter(([, l]) => Number.isInteger(l) && l >= 1)),
+      stats: (Array.isArray(data.stats) ? data.stats : []).map(cleanStat).filter(s => s.label),
+      equippedSlot: slotsFor(itemId).includes(slot) ? slot : null,
+    };
+  }
+
+  function makeProfile(data = {}){
+    const items = (Array.isArray(data.items) ? data.items : [])
+      .filter(i => i && typeof i === 'object').map(makeItem);
+    // one item per slot — first claim wins, later duplicates are unequipped
+    const taken = new Set();
+    for (const it of items){
+      if (!it.equippedSlot) continue;
+      if (taken.has(it.equippedSlot)) it.equippedSlot = null;
+      else taken.add(it.equippedSlot);
+    }
+    return {
+      id: typeof data.id === 'string' && data.id ? data.id : nextId('char'),
+      name: String(data.name || ''),
+      notes: String(data.notes || ''),
+      items,
+    };
+  }
+
+  /**
+   * Equip an item instance into a slot (or unequip with slot = null),
+   * displacing whatever previously held that slot. Returns a new profile;
+   * never mutates the input.
+   */
+  function equip(profile, itemInstanceId, slot){
+    const it = profile.items.find(i => i.id === itemInstanceId);
+    if (!it) return {ok:false, error:'Item not found on this character.'};
+    if (slot !== null && !slotsFor(it.itemId).includes(slot))
+      return {ok:false, error:`That item cannot go in the ${SLOT_LABEL[slot] || slot} slot.`};
+    const items = profile.items.map(i => {
+      if (i.id === itemInstanceId) return {...i, equippedSlot: slot};
+      if (slot !== null && i.equippedSlot === slot) return {...i, equippedSlot: null};
+      return i;
+    });
+    return {ok:true, profile: {...profile, items}};
+  }
+
+  /** {slotId: item-or-null} for every slot. */
+  const equipped = profile => Object.fromEntries(
+    SLOTS.map(s => [s, profile.items.find(i => i.equippedSlot === s) || null]));
+
+  /** A fresh copy with its own identity; the original keeps the slot. */
+  function duplicateItem(item){
+    return makeItem({...item, id: null, equippedSlot: null,
+      customName: item.customName ? `${item.customName} (copy)` : ''});
+  }
+
+  /** Deep-copied, sanitized, versioned envelope ready for JSON.stringify. */
+  function serializeProfiles(profiles){
+    return {format: FORMAT, version: VERSION, profiles: profiles.map(makeProfile)};
+  }
+
+  /**
+   * Parses and validates an exported envelope (JSON string or already-
+   * parsed object). With opts.knownItemIds, items whose base type this
+   * build doesn't know are dropped and reported in `dropped` rather than
+   * failing the whole import.
+   */
+  function parseImport(raw, opts = {}){
+    const fail = (...errors) => ({ok:false, errors, profiles:[], dropped:[]});
+    let data = raw;
+    if (typeof raw === 'string'){
+      try { data = JSON.parse(raw); }
+      catch (e){ return fail('Not valid JSON: ' + e.message); }
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data))
+      return fail('Import must be a JSON object.');
+    if (data.format !== FORMAT)
+      return fail(`Unrecognized file — expected "format": "${FORMAT}".`);
+    if (!Number.isInteger(data.version) || data.version < 1)
+      return fail('Missing or invalid "version" number.');
+    if (data.version > VERSION)
+      return fail(`File is export version ${data.version}, but this app reads up to version ${VERSION} — re-export from a matching version.`);
+    if (!Array.isArray(data.profiles))
+      return fail('No "profiles" array found.');
+    const known = Array.isArray(opts.knownItemIds) ? opts.knownItemIds : null;
+    const dropped = [];
+    const profiles = data.profiles
+      .filter(p => p && typeof p === 'object')
+      .map(p => {
+        const prof = makeProfile(p);
+        if (known){
+          for (const it of prof.items)
+            if (!known.includes(it.itemId))
+              dropped.push(`${it.customName || it.itemId} (unknown item type "${it.itemId}") on "${prof.name || 'Unnamed'}"`);
+          prof.items = prof.items.filter(it => known.includes(it.itemId));
+        }
+        return prof;
+      });
+    return {ok:true, errors:[], profiles, dropped};
+  }
+
+  /**
+   * Folds imported profiles into an existing list. 'merge' (default):
+   * an imported profile whose id matches an existing one replaces it
+   * (an update from the same export lineage); everything else is
+   * appended. 'replace': the imported list wins outright.
+   */
+  function mergeProfiles(existing, incoming, mode = 'merge'){
+    if (mode === 'replace') return incoming.map(makeProfile);
+    const out = existing.map(p => {
+      const upd = incoming.find(q => q.id === p.id);
+      return upd ? makeProfile(upd) : p;
+    });
+    for (const p of incoming)
+      if (!existing.some(q => q.id === p.id)) out.push(makeProfile(p));
+    return out;
+  }
+
+  return Object.freeze({FORMAT, VERSION, SLOTS, SLOT_LABEL,
+    slotsFor, makeItem, makeProfile, equip, equipped, duplicateItem,
+    serializeProfiles, parseImport, mergeProfiles});
+})();
+
+/* =====================================================================
+ *  SELF-TESTS — §5: run ALL FIVE suites, console.table all results.
+ *  Anvil T1–T5, Gear W1–W10, brewing B1–B5, library L1–L5 (§9),
+ *  characters C1–C6.
  * ===================================================================== */
 function run_self_tests(){
   const rows = [];
@@ -1338,7 +1619,8 @@ function run_self_tests(){
     rows.push({suite, id, name, pass: pass ? 'PASS' : 'FAIL',
       expected: JSON.stringify(expected), actual: JSON.stringify(actual)});
   };
-  const A = AnvilEngine, B = BrewEngine, G = GearEngine, L = LibraryEngine;
+  const A = AnvilEngine, B = BrewEngine, G = GearEngine, L = LibraryEngine,
+        C = CharacterEngine;
 
   /* ---- anvil suite ---- */
   t('anvil', 'T1', 'prior-work penalty is 2^uses − 1',
@@ -1505,6 +1787,58 @@ function run_self_tests(){
   ];
   t('library', 'L5', 'filterBooks: compatible-equipment enchantment set',
     L.filterBooks(l5books, {equipmentEnchIds:['sharpness','smite','bane_of_arthropods']}).length, 1);
+
+  /* ---- character suite ---- */
+  const c1 = C.makeProfile({name:'Ranger', items:[
+    {itemId:'axe', materialId:'diamond', customName:'Woodcutting',
+     stats:[{label:'Harvest Speed', value:'+15'}]},
+    {itemId:'axe', materialId:'diamond', customName:'Battle Axe',
+     ench:{sharpness:5}, stats:[{label:'Damage', value:'+12'}]},
+  ]});
+  t('character', 'C1', 'two items of the same base type keep separate identities (names/stats)',
+    {count:c1.items.length, names:c1.items.map(i => i.customName),
+     stats:c1.items.map(i => i.stats[0].label), distinctIds:c1.items[0].id !== c1.items[1].id},
+    {count:2, names:['Woodcutting','Battle Axe'], stats:['Harvest Speed','Damage'], distinctIds:true});
+
+  t('character', 'C2', 'slotsFor: armor locked to its slot, elytra shares chest, tools are held',
+    {helmet:C.slotsFor('helmet'), elytra:C.slotsFor('elytra'), sword:C.slotsFor('sword')},
+    {helmet:['head'], elytra:['chest'], sword:['mainhand','offhand']});
+
+  const c3a = C.equip(c1, c1.items[0].id, 'mainhand');
+  const c3b = C.equip(c3a.profile, c3a.profile.items[1].id, 'mainhand');
+  const c3bad = C.equip(c1, c1.items[0].id, 'head');
+  t('character', 'C3', 'equip: same slot displaces the previous holder; wrong slot is rejected',
+    {first:c3a.ok ? c3a.profile.items.map(i => i.equippedSlot) : null,
+     second:c3b.ok ? c3b.profile.items.map(i => i.equippedSlot) : null,
+     equippedName:c3b.ok ? c3b.profile.items.find(i => i.equippedSlot === 'mainhand').customName : null,
+     badRejected:!c3bad.ok},
+    {first:['mainhand', null], second:[null,'mainhand'], equippedName:'Battle Axe', badRejected:true});
+
+  const c4json = JSON.stringify(C.serializeProfiles([c3b.profile]));
+  const c4 = C.parseImport(c4json);
+  t('character', 'C4', 'export → import round-trip preserves names, stats, enchantments, and equipped slots',
+    {ok:c4.ok, same:JSON.stringify(c4.profiles) === JSON.stringify([c3b.profile])},
+    {ok:true, same:true});
+
+  const c5 = [
+    C.parseImport('not json {'),
+    C.parseImport({format:'something-else', version:1, profiles:[]}),
+    C.parseImport({format:C.FORMAT, version:C.VERSION + 1, profiles:[]}),
+    C.parseImport({format:C.FORMAT, version:1, profiles:'nope'}),
+  ];
+  t('character', 'C5', 'parseImport rejects bad JSON, wrong format, newer version, and missing profiles',
+    {allRejected:c5.every(r => !r.ok && r.errors.length === 1)}, {allRejected:true});
+
+  const c6base = [C.makeProfile({id:'p1', name:'Ranger'}), C.makeProfile({id:'p2', name:'Miner'})];
+  const c6in = [C.makeProfile({id:'p1', name:'Ranger v2'}), C.makeProfile({id:'p3', name:'Alchemist'})];
+  const c6merged = C.mergeProfiles(c6base, c6in, 'merge');
+  const c6replaced = C.mergeProfiles(c6base, c6in, 'replace');
+  const c6drop = C.parseImport({format:C.FORMAT, version:1, profiles:[
+    {name:'X', items:[{itemId:'sword'}, {itemId:'modded_hammer'}]}]}, {knownItemIds:['sword']});
+  t('character', 'C6', 'mergeProfiles: matching id updates in place, new ids append, replace mode wins; unknown item types drop with a report',
+    {merged:c6merged.map(p => p.name), replaced:c6replaced.map(p => p.name),
+     kept:c6drop.profiles[0].items.length, dropped:c6drop.dropped.length},
+    {merged:['Ranger v2','Miner','Alchemist'], replaced:['Ranger v2','Alchemist'], kept:1, dropped:1});
 
   console.table(rows);
   const failed = rows.filter(r => r.pass !== 'PASS');
@@ -2344,6 +2678,343 @@ function bootLibrary(){
   renderPendingEnch(); renderPendingReq(); render();
 }
 
+/* ------------------------- CHARACTER PROFILES UI ----------------------- */
+const CHAR_LS_KEY = 'mc_calc_characters_v1';
+
+function bootCharacters(){
+  const A = AnvilEngine, G = GearEngine, C = CharacterEngine;
+  const S = {profiles:[], activeId:null, pendingEnch:[], pendingStats:[]};
+
+  function loadProfiles(){
+    try {
+      const raw = localStorage.getItem(CHAR_LS_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (Array.isArray(data.profiles)) S.profiles = data.profiles.map(C.makeProfile);
+      if (S.profiles.some(p => p.id === data.activeId)) S.activeId = data.activeId;
+      else if (S.profiles.length) S.activeId = S.profiles[0].id;
+    } catch (e){ /* corrupt or unavailable storage — start from an empty roster */ }
+  }
+  function saveProfiles(){
+    try {
+      localStorage.setItem(CHAR_LS_KEY, JSON.stringify({profiles:S.profiles, activeId:S.activeId}));
+    } catch (e){ /* storage unavailable (private browsing, quota) — session-only for this load */ }
+  }
+
+  const newName = $('#ch-new-name'), newMsg = $('#ch-new-msg'),
+        charSel = $('#ch-select'), nameInput = $('#ch-name'), notesInput = $('#ch-notes'),
+        itemSel = $('#ch-item'), itemIcon = $('#ch-item-icon'),
+        matWrap = $('#ch-material-wrap'), matSel = $('#ch-material'),
+        itemName = $('#ch-item-name'), itemNotes = $('#ch-item-notes'), itemMsg = $('#ch-item-msg'),
+        enchSel = $('#ch-ench'), lvlSel = $('#ch-lvl'),
+        statLabel = $('#ch-stat-label'), statValue = $('#ch-stat-value'),
+        exScope = $('#ch-ex-scope'), exOut = $('#ch-ex-out'), exMsg = $('#ch-ex-msg'),
+        imFile = $('#ch-im-file'), imText = $('#ch-im-text'), imMode = $('#ch-im-mode'),
+        imMsg = $('#ch-im-msg'), imOk = $('#ch-im-ok');
+
+  const active = () => S.profiles.find(p => p.id === S.activeId) || null;
+  const replaceActive = updated => {
+    S.profiles = S.profiles.map(p => p.id === updated.id ? updated : p);
+  };
+
+  const baseName = it => (it.materialId ? G.materialName(it.materialId) + ' ' : '') +
+    (A.ITEMS[it.itemId] ? A.ITEMS[it.itemId].name : it.itemId);
+  const itemTitle = it => it.customName || baseName(it);
+  const iconFor = it => ICONS[G.iconKeyFor(it.itemId, it.materialId)] || ICONS[it.itemId] || BLANK_ICON;
+  const enchText = ench => Object.entries(ench)
+    .map(([id, l]) => `${A.ENCH[id] ? A.ENCH[id].name : id} ${ROMAN[l] || l}`).join(', ');
+
+  function showMsg(node, text){ node.textContent = text; node.hidden = false; }
+  function clearMsg(node){ node.hidden = true; node.textContent = ''; }
+
+  /* ---- add-an-item form ---- */
+  function fillItemSelect(){
+    itemSel.textContent = '';
+    Object.entries(A.ITEMS).forEach(([id, it]) =>
+      itemSel.append(el('option', {value:id, text:it.name})));
+    itemSel.value = 'sword';
+  }
+  function fillMaterialSelect(){
+    const mats = G.materialsFor(itemSel.value);
+    matWrap.hidden = !mats.length;
+    matSel.textContent = '';
+    mats.forEach(m => matSel.append(el('option', {value:m, text:G.materialName(m)})));
+    if (mats.includes('iron')) matSel.value = 'iron';
+  }
+  function fillEnchSelect(){
+    enchSel.textContent = '';
+    Object.entries(A.ENCH)
+      .filter(([id]) => A.applies(id, itemSel.value))
+      .sort((a, b) => a[1].name.localeCompare(b[1].name))
+      .forEach(([id, e]) => enchSel.append(el('option', {value:id, text:e.name})));
+    fillLvl();
+  }
+  function fillLvl(){
+    lvlSel.textContent = '';
+    const max = enchSel.value && A.ENCH[enchSel.value] ? A.ENCH[enchSel.value].max : 5;
+    for (let l = 1; l <= max; l++) lvlSel.append(el('option', {value:String(l), text:ROMAN[l]}));
+  }
+  function syncItemForm(){
+    fillMaterialSelect(); fillEnchSelect();
+    S.pendingEnch = [];
+    renderPendingEnch(); syncIcon();
+  }
+  function syncIcon(){
+    const mats = G.materialsFor(itemSel.value);
+    itemIcon.src = ICONS[G.iconKeyFor(itemSel.value, mats.length ? matSel.value : null)] ||
+      ICONS[itemSel.value] || BLANK_ICON;
+  }
+  function renderPendingEnch(){
+    const ul = $('#ch-ench-list');
+    ul.textContent = '';
+    S.pendingEnch.forEach((e, i) => ul.append(el('li', {},
+      el('span', {}, iconImg(ICONS.book), `${A.ENCH[e.id].name} ${ROMAN[e.lvl]}`),
+      el('button', {class:'mini', type:'button', 'aria-label':`Remove ${A.ENCH[e.id].name}`,
+        onclick:() => { S.pendingEnch.splice(i, 1); renderPendingEnch(); }}, '✕'))));
+  }
+  function renderPendingStats(){
+    const ul = $('#ch-stat-list');
+    ul.textContent = '';
+    S.pendingStats.forEach((s, i) => ul.append(el('li', {},
+      el('span', {}, `${s.label}${s.value ? ` — ${s.value}` : ''}`),
+      el('button', {class:'mini', type:'button', 'aria-label':`Remove ${s.label}`,
+        onclick:() => { S.pendingStats.splice(i, 1); renderPendingStats(); }}, '✕'))));
+  }
+
+  /* ---- right column ---- */
+  function renderCharSelect(){
+    charSel.textContent = '';
+    if (!S.profiles.length){
+      charSel.append(el('option', {value:'', disabled:'', text:'No characters yet'}));
+      nameInput.value = ''; notesInput.value = '';
+      return;
+    }
+    S.profiles.forEach(p => charSel.append(el('option', {value:p.id,
+      text:`${p.name || 'Unnamed'} (${p.items.length} item${p.items.length === 1 ? '' : 's'})`})));
+    charSel.value = S.activeId;
+    const p = active();
+    nameInput.value = p ? p.name : '';
+    notesInput.value = p ? p.notes : '';
+  }
+
+  function renderEquipment(){
+    const out = $('#ch-equip-out');
+    out.textContent = '';
+    const p = active();
+    out.append(el('div', {class:'tiles'},
+      tile(String(S.profiles.length), 'characters'),
+      tile(String(p ? p.items.length : 0), 'items on this character'),
+      tile(String(p ? p.items.filter(i => i.equippedSlot).length : 0), 'equipped'),
+      tile(String(S.profiles.reduce((n, q) => n + q.items.length, 0)), 'items across all')));
+    if (!p){
+      out.append(el('p', {class:'empty', text:'No characters yet — create one on the left.'}));
+      return;
+    }
+    if (p.notes) out.append(el('p', {class:'assume', text:p.notes}));
+    const grid = el('div', {class:'slot-grid'});
+    const eq = C.equipped(p);
+    for (const slot of C.SLOTS){
+      const it = eq[slot];
+      grid.append(el('div', {class:'slot-cell' + (it ? ' filled' : '')},
+        el('div', {class:'slab', text:C.SLOT_LABEL[slot]}),
+        it ? el('div', {class:'sitem'}, iconImg(iconFor(it)), itemTitle(it))
+           : el('div', {class:'sempty', text:'empty'})));
+    }
+    out.append(grid);
+  }
+
+  function invRow(it){
+    const p = active();
+    const nInput = el('input', {type:'text', value:it.customName,
+      placeholder:baseName(it), 'aria-label':'Custom name'});
+    nInput.addEventListener('change', () => { it.customName = nInput.value.trim(); saveAndRender(); });
+    const noteInput = el('input', {type:'text', value:it.notes, 'aria-label':'Item notes'});
+    noteInput.addEventListener('change', () => { it.notes = noteInput.value; saveAndRender(); });
+
+    const slotSel = el('select', {'aria-label':'Equipment slot'});
+    slotSel.append(el('option', {value:'', text:'Not equipped'}));
+    C.slotsFor(it.itemId).forEach(s =>
+      slotSel.append(el('option', {value:s, text:C.SLOT_LABEL[s]})));
+    slotSel.value = it.equippedSlot || '';
+    slotSel.addEventListener('change', () => {
+      const r = C.equip(p, it.id, slotSel.value || null);
+      if (r.ok){ replaceActive(r.profile); saveAndRender(); }
+    });
+
+    const dupBtn = el('button', {class:'mini', type:'button', 'aria-label':'Duplicate item',
+      onclick:() => { p.items.push(C.duplicateItem(it)); saveAndRender(); }}, '⧉ copy');
+    const delBtn = el('button', {class:'mini', type:'button', 'aria-label':'Delete item',
+      onclick:() => { p.items = p.items.filter(x => x.id !== it.id); saveAndRender(); }}, '✕');
+
+    const statChips = el('ul', {class:'chips'});
+    it.stats.forEach((s, i) => statChips.append(el('li', {},
+      el('span', {class:'stat-line'}, `${s.label}${s.value ? ` — ${s.value}` : ''}`),
+      el('button', {class:'mini', type:'button', 'aria-label':`Remove stat ${s.label}`,
+        onclick:() => { it.stats.splice(i, 1); saveAndRender(); }}, '✕'))));
+    const addLabel = el('input', {type:'text', placeholder:'Stat', 'aria-label':'New stat label'});
+    const addValue = el('input', {type:'text', placeholder:'Value', 'aria-label':'New stat value'});
+    const addBtn = el('button', {class:'mini', type:'button', 'aria-label':'Add stat', onclick:() => {
+      const label = addLabel.value.trim();
+      if (!label) return;
+      it.stats.push({label, value:addValue.value.trim()});
+      saveAndRender();
+    }}, '+ stat');
+
+    const card = el('li', {class:'lib-card'},
+      el('div', {class:'hd'},
+        el('span', {class:'ttl'}, iconImg(iconFor(it)), itemTitle(it)),
+        el('span', {class:'sub', text:baseName(it) + (it.equippedSlot ? ` · ${C.SLOT_LABEL[it.equippedSlot]}` : '')})),
+      Object.keys(it.ench).length ? el('p', {class:'sub', text:enchText(it.ench)}) : null,
+      statChips,
+      el('div', {class:'fields'},
+        el('label', {}, 'Custom name', nInput),
+        el('label', {}, 'Slot', slotSel),
+        el('label', {}, 'Notes', noteInput),
+        el('label', {}, 'New stat', el('span', {class:'row'}, addLabel, addValue, addBtn)),
+        el('label', {}, ' ', el('span', {class:'row'}, dupBtn, delBtn))));
+    return card;
+  }
+
+  function renderInventory(){
+    const out = $('#ch-inv-out');
+    out.textContent = '';
+    const p = active();
+    if (!p){
+      out.append(el('p', {class:'empty', text:'No character selected.'}));
+      return;
+    }
+    if (!p.items.length){
+      out.append(el('p', {class:'empty', text:'Inventory is empty — add an item on the left.'}));
+      return;
+    }
+    const ul = el('ul', {class:'lib-list'});
+    p.items.forEach(it => ul.append(invRow(it)));
+    out.append(ul);
+  }
+
+  function render(){ renderCharSelect(); renderEquipment(); renderInventory(); }
+  function saveAndRender(){ saveProfiles(); render(); }
+
+  /* ---- events: characters ---- */
+  $('#ch-new-btn').addEventListener('click', () => {
+    const name = newName.value.trim();
+    if (!name){ showMsg(newMsg, 'Give the character a name first.'); return; }
+    const p = C.makeProfile({name});
+    S.profiles.push(p); S.activeId = p.id;
+    newName.value = ''; clearMsg(newMsg); saveAndRender();
+  });
+  charSel.addEventListener('change', () => { S.activeId = charSel.value; saveAndRender(); });
+  nameInput.addEventListener('change', () => {
+    const p = active();
+    if (p){ p.name = nameInput.value.trim(); saveAndRender(); }
+  });
+  notesInput.addEventListener('change', () => {
+    const p = active();
+    if (p){ p.notes = notesInput.value; saveAndRender(); }
+  });
+  $('#ch-delete').addEventListener('click', () => {
+    if (!active()) return;
+    S.profiles = S.profiles.filter(p => p.id !== S.activeId);
+    S.activeId = S.profiles.length ? S.profiles[0].id : null;
+    saveAndRender();
+  });
+
+  /* ---- events: add an item ---- */
+  itemSel.addEventListener('change', syncItemForm);
+  matSel.addEventListener('change', syncIcon);
+  enchSel.addEventListener('change', fillLvl);
+  $('#ch-ench-add').addEventListener('click', () => {
+    const id = enchSel.value;
+    if (!id) return;
+    const lvl = parseInt(lvlSel.value, 10);
+    const existing = S.pendingEnch.find(e => e.id === id);
+    if (existing) existing.lvl = lvl; else S.pendingEnch.push({id, lvl});
+    renderPendingEnch();
+  });
+  $('#ch-stat-add').addEventListener('click', () => {
+    const label = statLabel.value.trim();
+    if (!label){ showMsg(itemMsg, 'Give the stat a label first.'); return; }
+    S.pendingStats.push({label, value:statValue.value.trim()});
+    statLabel.value = ''; statValue.value = '';
+    clearMsg(itemMsg); renderPendingStats();
+  });
+  $('#ch-item-add').addEventListener('click', () => {
+    const p = active();
+    if (!p){ showMsg(itemMsg, 'Create or select a character first.'); return; }
+    const mats = G.materialsFor(itemSel.value);
+    p.items.push(C.makeItem({
+      itemId:itemSel.value,
+      materialId:mats.length ? matSel.value : null,
+      customName:itemName.value.trim(),
+      notes:itemNotes.value.trim(),
+      ench:Object.fromEntries(S.pendingEnch.map(e => [e.id, e.lvl])),
+      stats:S.pendingStats,
+    }));
+    S.pendingEnch = []; S.pendingStats = [];
+    itemName.value = ''; itemNotes.value = '';
+    clearMsg(itemMsg); renderPendingEnch(); renderPendingStats(); saveAndRender();
+  });
+
+  /* ---- events: import/export ---- */
+  function exportPayload(){
+    const scope = exScope.value;
+    const profiles = scope === 'active'
+      ? (active() ? [active()] : [])
+      : S.profiles;
+    if (!profiles.length) return null;
+    return {profiles, json:JSON.stringify(C.serializeProfiles(profiles), null, 2)};
+  }
+  $('#ch-ex-download').addEventListener('click', () => {
+    const payload = exportPayload();
+    if (!payload){ showMsg(exMsg, 'Nothing to export yet.'); return; }
+    clearMsg(exMsg);
+    const slug = payload.profiles.length === 1
+      ? (payload.profiles[0].name || 'character').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'character'
+      : 'characters';
+    const url = URL.createObjectURL(new Blob([payload.json], {type:'application/json'}));
+    const a = el('a', {href:url, download:`minecraft-calc-${slug}.json`});
+    document.body.append(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  });
+  $('#ch-ex-show').addEventListener('click', () => {
+    const payload = exportPayload();
+    if (!payload){ showMsg(exMsg, 'Nothing to export yet.'); exOut.hidden = true; return; }
+    clearMsg(exMsg);
+    exOut.value = payload.json; exOut.hidden = false;
+    exOut.focus(); exOut.select();
+  });
+
+  function doImport(raw){
+    clearMsg(imMsg); clearMsg(imOk);
+    const r = C.parseImport(raw, {knownItemIds:Object.keys(A.ITEMS)});
+    if (!r.ok){ showMsg(imMsg, r.errors.join(' ')); return; }
+    if (!r.profiles.length){ showMsg(imMsg, 'That file contains no character profiles.'); return; }
+    S.profiles = C.mergeProfiles(S.profiles, r.profiles, imMode.value);
+    if (!S.profiles.some(p => p.id === S.activeId))
+      S.activeId = S.profiles.length ? S.profiles[0].id : null;
+    const n = r.profiles.length;
+    showMsg(imOk, `Imported ${n} character${n === 1 ? '' : 's'}.` +
+      (r.dropped.length ? ` Skipped ${r.dropped.length} item${r.dropped.length === 1 ? '' : 's'}: ${r.dropped.join('; ')}.` : ''));
+    imText.value = '';
+    saveAndRender();
+  }
+  $('#ch-im-btn').addEventListener('click', () => {
+    const text = imText.value.trim();
+    if (!text){ showMsg(imMsg, 'Choose a file above or paste exported JSON first.'); return; }
+    doImport(text);
+  });
+  imFile.addEventListener('change', () => {
+    const f = imFile.files && imFile.files[0];
+    if (!f) return;
+    f.text().then(doImport, () => showMsg(imMsg, 'Could not read that file.'));
+    imFile.value = '';
+  });
+
+  loadProfiles();
+  fillItemSelect(); syncItemForm(); renderPendingStats();
+  render();
+}
+
 /* ------------------------------- TABS -------------------------------- */
 function bootTabs(){
   const tabs = [...document.querySelectorAll('[role=tab]')];
@@ -2373,7 +3044,7 @@ function bootTabs(){
 /* ------------------------------- BOOT -------------------------------- */
 if (HAS_DOM){
   const boot = () => {
-    bootTabs(); bootAnvil(); bootBrew(); bootLibrary();
+    bootTabs(); bootAnvil(); bootBrew(); bootLibrary(); bootCharacters();
     const rows = run_self_tests();
     const failed = rows.filter(r => r.pass !== 'PASS').length;
     const badge = document.getElementById('test-badge');
@@ -2389,7 +3060,7 @@ if (HAS_DOM){
 
 /* Node/test harness export — engines are DOM-free by construction. */
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = {AnvilEngine, BrewEngine, GearEngine, LibraryEngine, run_self_tests};
+  module.exports = {AnvilEngine, BrewEngine, GearEngine, LibraryEngine, CharacterEngine, run_self_tests};
 </script>
 </body>
 </html>
