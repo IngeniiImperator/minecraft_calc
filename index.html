@@ -563,8 +563,9 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
             <option value="active">Active character only</option>
           </select></label>
         <button class="btn" id="ch-ex-download" type="button">Download profiles (.json)</button>
-        <button class="btn" id="ch-ex-show" type="button" style="margin-top:10px">Show JSON to copy</button>
+        <button class="btn" id="ch-ex-show" type="button" style="margin-top:10px">Copy JSON to clipboard</button>
         <p class="msg-err" id="ch-ex-msg" hidden></p>
+        <p class="msg-ok" id="ch-ex-ok" hidden></p>
         <textarea id="ch-ex-out" readonly hidden aria-label="Exported profile JSON" style="margin-top:10px"></textarea>
         <h3>Import</h3>
         <label class="f"><span class="lab">From file</span>
@@ -2708,7 +2709,7 @@ function bootCharacters(){
         itemName = $('#ch-item-name'), itemNotes = $('#ch-item-notes'), itemMsg = $('#ch-item-msg'),
         enchSel = $('#ch-ench'), lvlSel = $('#ch-lvl'),
         statLabel = $('#ch-stat-label'), statValue = $('#ch-stat-value'),
-        exScope = $('#ch-ex-scope'), exOut = $('#ch-ex-out'), exMsg = $('#ch-ex-msg'),
+        exScope = $('#ch-ex-scope'), exOut = $('#ch-ex-out'), exMsg = $('#ch-ex-msg'), exOk = $('#ch-ex-ok'),
         imFile = $('#ch-im-file'), imText = $('#ch-im-text'), imMode = $('#ch-im-mode'),
         imMsg = $('#ch-im-msg'), imOk = $('#ch-im-ok');
 
@@ -2966,8 +2967,8 @@ function bootCharacters(){
   }
   $('#ch-ex-download').addEventListener('click', () => {
     const payload = exportPayload();
-    if (!payload){ showMsg(exMsg, 'Nothing to export yet.'); return; }
-    clearMsg(exMsg);
+    if (!payload){ showMsg(exMsg, 'Nothing to export yet.'); clearMsg(exOk); return; }
+    clearMsg(exMsg); clearMsg(exOk);
     const slug = payload.profiles.length === 1
       ? (payload.profiles[0].name || 'character').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'character'
       : 'characters';
@@ -2976,12 +2977,28 @@ function bootCharacters(){
     document.body.append(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
   });
+  /** Copies text to the clipboard, preferring the async Clipboard API and
+      falling back to the deprecated execCommand path (needed for file://
+      pages and older/locked-down browsers where Clipboard API is blocked). */
+  function copyToClipboard(text){
+    if (navigator.clipboard && navigator.clipboard.writeText)
+      return navigator.clipboard.writeText(text);
+    return new Promise((resolve, reject) => {
+      try {
+        exOut.focus(); exOut.select();
+        if (document.execCommand('copy')) resolve(); else reject(new Error('execCommand failed'));
+      } catch (e){ reject(e); }
+    });
+  }
   $('#ch-ex-show').addEventListener('click', () => {
     const payload = exportPayload();
-    if (!payload){ showMsg(exMsg, 'Nothing to export yet.'); exOut.hidden = true; return; }
-    clearMsg(exMsg);
+    if (!payload){ showMsg(exMsg, 'Nothing to export yet.'); exOut.hidden = true; clearMsg(exOk); return; }
+    clearMsg(exMsg); clearMsg(exOk);
     exOut.value = payload.json; exOut.hidden = false;
     exOut.focus(); exOut.select();
+    copyToClipboard(payload.json)
+      .then(() => showMsg(exOk, 'Copied to clipboard.'))
+      .catch(() => showMsg(exMsg, 'Shown below, but the clipboard copy was blocked — select the text and copy it manually.'));
   });
 
   function doImport(raw){

@@ -350,8 +350,9 @@ already-described item — and deleted individually.
 **Import / Export**
 
 - **Export** all characters, or just the active one, either as a
-  downloaded `.json` file or as JSON text shown on screen for
-  copy/paste.
+  downloaded `.json` file or as JSON text shown on screen and copied to
+  the clipboard automatically (falling back to manual select-and-copy if
+  the browser blocks clipboard access).
 - **Import** from a chosen file or pasted JSON, in one of two modes:
   **Merge** (a profile whose id matches an existing one updates it in
   place; everything else is appended) or **Replace** (the imported list
