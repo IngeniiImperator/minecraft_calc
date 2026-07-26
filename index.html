@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Minecraft Calc — Anvil Combiner &amp; Brewing Planner</title>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%230e0f13"/><rect x="3" y="3" width="10" height="3" fill="%23a7b0c0"/><rect x="6" y="6" width="4" height="3" fill="%23808a9c"/><rect x="4" y="9" width="8" height="4" fill="%23a7b0c0"/><rect x="12" y="10" width="2" height="2" fill="%23b78aff"/></svg>'>
+<style>
+/* ================================================================
+   WORKSHOP TERMINAL — shared dark theme
+   Two modules share every token below; the brewing module adds
+   exactly one accent custom property (potion violet), per spec.
+   ================================================================ */
+:root{
+  --bg:          #0e0f13;
+  --bg-deep:     #0a0b0e;
+  --panel:       #14161c;
+  --panel-2:     #191c24;
+  --slot:        #1d212b;
+  --line:        #2a2f3b;
+  --line-soft:   #232833;
+  --bevel-dark:  #07080b;
+  --bevel-light: #39404f;
+  --text:        #e8e6df;
+  --dim:         #a7b0c0;
+  --faint:       #7b8496;
+  --danger:      #ff8a7a;
+  --ok:          #7dd97a;
+  --accent-anvil:#8fe14d;            /* experience green */
+  --accent-brew: #b78aff;            /* potion violet — the brewing module's one added accent */
+  --accent:      var(--accent-anvil);
+  --mono: ui-monospace,"Cascadia Code","JetBrains Mono","IBM Plex Mono","SF Mono",
+          Menlo,Consolas,"Liberation Mono",monospace;
+  --shadow: 5px 5px 0 rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html{scrollbar-gutter:stable}
+body{
+  margin:0; min-height:100vh;
+  font:15px/1.55 var(--mono);
+  color:var(--text);
+  background:
+    radial-gradient(1100px 500px at 85% -10%, rgba(183,138,255,.06), transparent 60%),
+    radial-gradient(900px 480px at -10% 0%, rgba(143,225,77,.05), transparent 55%),
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(255,255,255,.017) 31px 32px),
+    repeating-linear-gradient(90deg, transparent 0 31px, rgba(255,255,255,.017) 31px 32px),
+    var(--bg);
+}
+::selection{background:var(--accent); color:#0b0c10}
+
+/* ---------- layout shell ---------- */
+.wrap{max-width:1180px; margin:0 auto; padding:28px 20px 80px}
+header.masthead{display:flex; flex-wrap:wrap; gap:22px; align-items:flex-end;
+  justify-content:space-between; margin-bottom:26px}
+.brand h1{
+  margin:0; font-size:clamp(26px,4.4vw,42px); letter-spacing:.06em; line-height:1.05;
+  text-transform:uppercase; font-weight:800;
+  text-shadow:3px 3px 0 rgba(0,0,0,.55);
+}
+.brand h1 .hl{color:var(--accent-anvil)}
+.brand h1 .h2l{color:var(--accent-brew)}
+.brand .sub{margin:6px 0 0; color:var(--dim); font-size:13px; letter-spacing:.04em}
+
+/* ---------- tabs (hotbar) ---------- */
+.tabs{display:flex; gap:10px}
+.tab{
+  appearance:none; cursor:pointer; font:inherit; font-weight:700; letter-spacing:.05em;
+  text-transform:uppercase; font-size:13px;
+  color:var(--dim); background:var(--slot);
+  border:2px solid; border-color:var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+  padding:12px 18px 10px; box-shadow:var(--shadow);
+  display:flex; align-items:center; gap:9px;
+}
+.tab .dot{width:10px; height:10px; background:currentColor; flex:none}
+.tab[aria-selected="true"]{
+  color:var(--text); background:var(--panel-2);
+  border-color:var(--tab-accent,var(--accent-anvil));
+  box-shadow:0 0 0 1px var(--bg-deep), 5px 5px 0 rgba(0,0,0,.45);
+}
+.tab[aria-selected="true"] .dot{background:var(--tab-accent,var(--accent-anvil))}
+.tab:hover{color:var(--text)}
+#tab-brew{--tab-accent:var(--accent-brew)}
+#tab-anvil{--tab-accent:var(--accent-anvil)}
+
+/* ---------- module panels ---------- */
+section[role="tabpanel"]{outline:none}
+#panel-anvil{--accent:var(--accent-anvil)}
+#panel-brew {--accent:var(--accent-brew)}
+.module-grid{display:grid; grid-template-columns:minmax(320px,380px) 1fr; gap:22px; align-items:start}
+
+.card{
+  background:var(--panel); border:2px solid var(--line);
+  box-shadow:var(--shadow); padding:18px;
+}
+.card + .card{margin-top:22px}
+.card h2{
+  margin:-18px -18px 16px; padding:11px 18px 9px;
+  font-size:13px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--accent); background:var(--panel-2);
+  border-bottom:2px solid var(--line);
+}
+.card h3{margin:20px 0 8px; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim)}
+.card h3:first-of-type{margin-top:0}
+
+/* ---------- forms ---------- */
+label.f{display:block; margin:0 0 12px}
+label.f > .lab, .lab{
+  display:block; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--faint); margin-bottom:5px;
+}
+select,input[type=number],input[type=text]{
+  width:100%; font:inherit; color:var(--text); background:var(--slot);
+  border:2px solid; border-color:var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+  padding:8px 10px; border-radius:0;
+}
+input[type=number]{appearance:textfield}
+select:focus-visible,input:focus-visible,button:focus-visible,[role=tab]:focus-visible{
+  outline:2px solid var(--accent); outline-offset:2px;
+}
+.tab:focus-visible{outline-color:var(--tab-accent,var(--accent))}
+.row{display:flex; gap:12px}
+.row > *{flex:1; min-width:0}
+button.btn{
+  appearance:none; cursor:pointer; font:inherit; font-weight:700; width:100%;
+  letter-spacing:.08em; text-transform:uppercase; font-size:13px;
+  color:#0b0c10; background:var(--accent);
+  border:2px solid var(--bevel-dark); padding:11px 14px 9px;
+  box-shadow:4px 4px 0 rgba(0,0,0,.45);
+}
+button.btn:hover{filter:brightness(1.1)}
+button.btn:active{transform:translate(2px,2px); box-shadow:2px 2px 0 rgba(0,0,0,.45)}
+button.btn[disabled]{opacity:.45; cursor:not-allowed; transform:none}
+button.mini{
+  appearance:none; cursor:pointer; font:inherit; font-size:12px; line-height:1;
+  color:var(--dim); background:var(--slot); border:2px solid var(--line);
+  padding:5px 8px 4px;
+}
+button.mini:hover{color:var(--danger); border-color:var(--danger)}
+
+/* toggle pills */
+.toggle{display:flex; align-items:flex-start; gap:9px; padding:7px 0; cursor:pointer}
+.toggle input{width:18px; height:18px; margin:1px 0 0; accent-color:var(--accent); flex:none; cursor:pointer}
+.toggle .tl{font-size:14px}
+.toggle .why{display:block; font-size:12px; color:var(--faint)}
+.toggle.off{cursor:not-allowed}
+.toggle.off .tl{color:var(--faint); text-decoration:line-through 1px}
+
+/* chip lists (targets, books, enchants) */
+ul.chips{list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:8px}
+ul.chips li{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  background:var(--slot); padding:8px 10px;
+  border:2px solid; border-color:var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+  font-size:13.5px;
+}
+ul.chips li .meta{color:var(--faint); font-size:12px}
+.empty{color:var(--faint); font-size:13px; font-style:italic; margin:8px 0 0}
+
+/* ---------- results: stat tiles ---------- */
+.tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin-bottom:6px}
+.tile{
+  background:var(--slot); padding:12px 14px 10px;
+  border:2px solid; border-color:var(--bevel-light) var(--bevel-dark) var(--bevel-dark) var(--bevel-light);
+}
+.tile .num{font-size:26px; font-weight:800; line-height:1.1; color:var(--text)}
+.tile .num small{font-size:14px; font-weight:400; color:var(--dim)}
+.tile .cap{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); margin-top:3px}
+.assume{color:var(--faint); font-size:12px; margin:10px 0 0}
+
+/* ---------- step cards ---------- */
+.chain{margin-top:14px}
+.chain-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:8px 14px; margin-bottom:10px}
+.chain-head .t{font-weight:800; font-size:15px}
+.chain-head .d{color:var(--faint); font-size:12px}
+ol.steps{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px}
+.step{
+  display:grid; grid-template-columns:auto 1fr; gap:4px 12px;
+  background:var(--panel-2); border:2px solid var(--line-soft); padding:10px 12px;
+  position:relative;
+}
+.step .no{
+  grid-row:1 / span 2; align-self:center;
+  min-width:64px; text-align:center; padding:6px 8px;
+  background:var(--slot); border:2px solid var(--line);
+  font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--accent);
+  font-weight:700;
+}
+.step .no b{display:block; font-size:15px; color:var(--text)}
+.step .tr{display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:13.5px}
+.state{
+  background:var(--slot); padding:5px 9px 4px;
+  border:2px solid; border-color:var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+}
+.ing{
+  color:#0b0c10; background:var(--accent); font-weight:700;
+  padding:5px 9px 4px; border:2px solid var(--bevel-dark);
+}
+.arr{color:var(--faint)}
+.step .note{grid-column:2; font-size:12px; color:var(--dim)}
+.step .note.alt{color:var(--accent)}
+.craft{border-left:4px solid var(--accent)}
+
+/* ---------- tables ---------- */
+table.bom{width:100%; border-collapse:collapse; margin-top:10px; font-size:13.5px}
+table.bom caption{text-align:left; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); padding-bottom:8px}
+table.bom th,table.bom td{padding:7px 10px; text-align:left; border:1px solid var(--line-soft)}
+table.bom th{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); background:var(--panel-2)}
+table.bom td.n{text-align:right; font-weight:700; color:var(--accent); white-space:nowrap}
+table.bom td .role{color:var(--faint); font-size:12px}
+
+/* hints / errors / warnings */
+.hints{margin:14px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px}
+.hints li{font-size:13px; color:var(--dim); padding:8px 10px; background:var(--panel-2);
+  border:2px dashed var(--line)}
+.hints li b{color:var(--accent)}
+.msg-err{
+  background:#241416; border:2px solid var(--danger); color:var(--danger);
+  padding:10px 12px; font-size:13.5px; margin:0 0 14px;
+}
+.msg-warn{background:var(--panel-2); border:2px solid #c9a227; color:#e6c453;
+  padding:10px 12px; font-size:13px; margin:12px 0 0}
+
+/* footer */
+footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px solid var(--line); padding-top:14px;
+  display:flex; flex-wrap:wrap; gap:8px 24px; justify-content:space-between}
+#test-badge{color:var(--ok); font-weight:700}
+#test-badge.bad{color:var(--danger)}
+
+@media (max-width:900px){
+  .module-grid{grid-template-columns:1fr}
+  header.masthead{align-items:flex-start; flex-direction:column}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important; animation:none!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="brand">
+    <h1>Minecraft <span class="hl">Calc</span><br><span aria-hidden="true">▚</span> <span class="hl">Anvil</span> + <span class="h2l">Brewing</span></h1>
+    <p class="sub">Java Edition 1.21.x · deterministic planners · single file, no network</p>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Calculator modules">
+    <button class="tab" id="tab-anvil" role="tab" aria-selected="true" aria-controls="panel-anvil">
+      <span class="dot" aria-hidden="true"></span>Anvil Combiner</button>
+    <button class="tab" id="tab-brew" role="tab" aria-selected="false" aria-controls="panel-brew" tabindex="-1">
+      <span class="dot" aria-hidden="true"></span>Brewing Planner</button>
+  </nav>
+</header>
+
+<main>
+<!-- ============================ ANVIL ============================ -->
+<section id="panel-anvil" role="tabpanel" aria-labelledby="tab-anvil" data-module="anvil">
+  <div class="module-grid">
+    <div>
+      <div class="card">
+        <h2>Build the job</h2>
+        <label class="f"><span class="lab">Target item</span>
+          <select id="an-item"></select>
+        </label>
+        <label class="f"><span class="lab">Prior anvil uses on the item (work penalty)</span>
+          <input id="an-uses" type="number" min="0" max="8" step="1" value="0">
+        </label>
+        <h3>Enchantments already on the item</h3>
+        <div class="row">
+          <label class="f"><span class="lab">Enchantment</span><select id="an-have-ench"></select></label>
+          <label class="f" style="max-width:90px"><span class="lab">Level</span><select id="an-have-lvl"></select></label>
+        </div>
+        <button class="btn" id="an-have-add" type="button">Add to item</button>
+        <ul class="chips" id="an-have-list"></ul>
+        <h3>Enchanted books to combine in</h3>
+        <div class="row">
+          <label class="f"><span class="lab">Enchantment</span><select id="an-book-ench"></select></label>
+          <label class="f" style="max-width:90px"><span class="lab">Level</span><select id="an-book-lvl"></select></label>
+        </div>
+        <button class="btn" id="an-book-add" type="button">Add book</button>
+        <ul class="chips" id="an-book-list"></ul>
+      </div>
+    </div>
+    <div>
+      <div class="card" aria-live="polite">
+        <h2>Cheapest combine order</h2>
+        <div id="an-out"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================== BREWING =========================== -->
+<section id="panel-brew" role="tabpanel" aria-labelledby="tab-brew" data-module="brew" hidden>
+  <div class="module-grid">
+    <div>
+      <div class="card">
+        <h2>Target builder</h2>
+        <label class="f"><span class="lab">Effect</span>
+          <select id="br-effect"></select>
+        </label>
+        <p class="empty" id="br-duration" style="margin:-6px 0 12px"></p>
+        <label class="toggle" id="br-pot-wrap">
+          <input type="checkbox" id="br-pot">
+          <span><span class="tl" id="br-pot-label">Potency II (glowstone dust)</span>
+          <span class="why" id="br-pot-why"></span></span>
+        </label>
+        <label class="toggle" id="br-ext-wrap">
+          <input type="checkbox" id="br-ext">
+          <span><span class="tl">Extended (redstone dust)</span>
+          <span class="why" id="br-ext-why"></span></span>
+        </label>
+        <div class="row" style="margin-top:10px">
+          <label class="f"><span class="lab">Form</span>
+            <select id="br-form">
+              <option value="potion">Potion</option>
+              <option value="splash">Splash</option>
+              <option value="lingering">Lingering</option>
+              <option value="tipped_arrow">Tipped arrow</option>
+            </select>
+          </label>
+          <label class="f" style="max-width:110px"><span class="lab" id="br-qty-lab">Quantity</span>
+            <input id="br-qty" type="number" min="1" max="999" step="1" value="1">
+          </label>
+        </div>
+        <button class="btn" id="br-add" type="button">Add to shopping list</button>
+        <h3>Shopping list</h3>
+        <ul class="chips" id="br-targets"></ul>
+        <p class="empty" id="br-none">Nothing queued yet — add a target above.</p>
+        <h3>Setup</h3>
+        <label class="f"><span class="lab">Brewing stands available</span>
+          <input id="br-stands" type="number" min="1" max="64" step="1" value="1">
+        </label>
+      </div>
+    </div>
+    <div>
+      <div class="card" aria-live="polite">
+        <h2>Brew plan</h2>
+        <div id="br-out"></div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <span>Anvil: enchant-combining only (repairs &amp; renames out of scope) · Brewing: durations shown are display-only flavor.</span>
+  <span id="test-badge">self-tests: pending…</span>
+</footer>
+</div>
+
+<noscript><p style="padding:20px">This calculator needs JavaScript.</p></noscript>
+
+<script>
+"use strict";
+/* eslint-disable no-console */
+
+/* =====================================================================
+ *  ANVIL ENGINE — independent pure-function namespace.
+ *  Java Edition 1.21.x anvil mechanics (enchantment combining).
+ *  Shares nothing with the brewing engine.
+ * ===================================================================== */
+const AnvilEngine = (() => {
+  const TOO_EXPENSIVE = 40;                     // survival cap: cost >= 40 is "Too Expensive!"
+  const ARMOR = ['helmet','chestplate','leggings','boots'];
+  const TOOLS = ['pickaxe','shovel','axe','hoe'];
+
+  const ITEMS = {
+    sword:{name:'Sword'}, axe:{name:'Axe'}, pickaxe:{name:'Pickaxe'}, shovel:{name:'Shovel'},
+    hoe:{name:'Hoe'}, mace:{name:'Mace'}, helmet:{name:'Helmet'}, chestplate:{name:'Chestplate'},
+    leggings:{name:'Leggings'}, boots:{name:'Boots'}, elytra:{name:'Elytra'}, bow:{name:'Bow'},
+    crossbow:{name:'Crossbow'}, trident:{name:'Trident'}, fishing_rod:{name:'Fishing Rod'},
+    shears:{name:'Shears'}, shield:{name:'Shield'}, book:{name:'Enchanted Book'},
+  };
+
+  // multipliers: cost per final level when the sacrifice is an item / a book.
+  const ENCH = {
+    protection:            {name:'Protection',            max:4, item:1, book:1, on:ARMOR},
+    fire_protection:       {name:'Fire Protection',       max:4, item:2, book:1, on:ARMOR},
+    blast_protection:      {name:'Blast Protection',      max:4, item:4, book:2, on:ARMOR},
+    projectile_protection: {name:'Projectile Protection', max:4, item:2, book:1, on:ARMOR},
+    feather_falling:       {name:'Feather Falling',       max:4, item:2, book:1, on:['boots']},
+    respiration:           {name:'Respiration',           max:3, item:4, book:2, on:['helmet']},
+    aqua_affinity:         {name:'Aqua Affinity',         max:1, item:4, book:2, on:['helmet']},
+    thorns:                {name:'Thorns',                max:3, item:8, book:4, on:ARMOR},
+    depth_strider:         {name:'Depth Strider',         max:3, item:4, book:2, on:['boots']},
+    frost_walker:          {name:'Frost Walker',          max:2, item:4, book:2, on:['boots']},
+    soul_speed:            {name:'Soul Speed',            max:3, item:8, book:4, on:['boots']},
+    swift_sneak:           {name:'Swift Sneak',           max:3, item:8, book:4, on:['leggings']},
+    sharpness:             {name:'Sharpness',             max:5, item:1, book:1, on:['sword','axe']},
+    smite:                 {name:'Smite',                 max:5, item:2, book:1, on:['sword','axe','mace']},
+    bane_of_arthropods:    {name:'Bane of Arthropods',    max:5, item:2, book:1, on:['sword','axe','mace']},
+    knockback:             {name:'Knockback',             max:2, item:2, book:1, on:['sword']},
+    fire_aspect:           {name:'Fire Aspect',           max:2, item:4, book:2, on:['sword','mace']},
+    looting:               {name:'Looting',               max:3, item:4, book:2, on:['sword']},
+    sweeping_edge:         {name:'Sweeping Edge',         max:3, item:4, book:2, on:['sword']},
+    efficiency:            {name:'Efficiency',            max:5, item:1, book:1, on:[...TOOLS,'shears']},
+    silk_touch:            {name:'Silk Touch',            max:1, item:8, book:4, on:TOOLS},
+    fortune:               {name:'Fortune',               max:3, item:4, book:2, on:TOOLS},
+    unbreaking:            {name:'Unbreaking',            max:3, item:2, book:1, on:'any'},
+    mending:               {name:'Mending',               max:1, item:4, book:2, on:'any'},
+    power:                 {name:'Power',                 max:5, item:1, book:1, on:['bow']},
+    punch:                 {name:'Punch',                 max:2, item:4, book:2, on:['bow']},
+    flame:                 {name:'Flame',                 max:1, item:4, book:2, on:['bow']},
+    infinity:              {name:'Infinity',              max:1, item:8, book:4, on:['bow']},
+    luck_of_the_sea:       {name:'Luck of the Sea',       max:3, item:4, book:2, on:['fishing_rod']},
+    lure:                  {name:'Lure',                  max:3, item:4, book:2, on:['fishing_rod']},
+    loyalty:               {name:'Loyalty',               max:3, item:1, book:1, on:['trident']},
+    impaling:              {name:'Impaling',              max:5, item:4, book:2, on:['trident']},
+    riptide:               {name:'Riptide',               max:3, item:4, book:2, on:['trident']},
+    channeling:            {name:'Channeling',            max:1, item:8, book:4, on:['trident']},
+    multishot:             {name:'Multishot',             max:1, item:4, book:2, on:['crossbow']},
+    quick_charge:          {name:'Quick Charge',          max:3, item:2, book:1, on:['crossbow']},
+    piercing:              {name:'Piercing',              max:4, item:1, book:1, on:['crossbow']},
+    density:               {name:'Density',               max:5, item:2, book:1, on:['mace']},
+    breach:                {name:'Breach',                max:4, item:4, book:2, on:['mace']},
+    wind_burst:            {name:'Wind Burst',            max:3, item:4, book:2, on:['mace']},
+    binding_curse:         {name:'Curse of Binding',      max:1, item:8, book:4, on:[...ARMOR,'elytra']},
+    vanishing_curse:       {name:'Curse of Vanishing',    max:1, item:8, book:4, on:'any'},
+  };
+
+  const EXCL_PAIRS = [
+    ['protection','fire_protection'],['protection','blast_protection'],['protection','projectile_protection'],
+    ['fire_protection','blast_protection'],['fire_protection','projectile_protection'],
+    ['blast_protection','projectile_protection'],
+    ['sharpness','smite'],['sharpness','bane_of_arthropods'],['smite','bane_of_arthropods'],
+    ['density','breach'],['density','smite'],['density','bane_of_arthropods'],
+    ['breach','smite'],['breach','bane_of_arthropods'],
+    ['depth_strider','frost_walker'],
+    ['silk_touch','fortune'],
+    ['infinity','mending'],
+    ['riptide','loyalty'],['riptide','channeling'],
+    ['multishot','piercing'],
+  ];
+  const EXCL = {};
+  for (const [a,b] of EXCL_PAIRS){
+    (EXCL[a] = EXCL[a] || new Set()).add(b);
+    (EXCL[b] = EXCL[b] || new Set()).add(a);
+  }
+
+  /** Prior-work penalty for a unit that has been on the anvil `uses` times. */
+  const pwp = uses => Math.pow(2, uses) - 1;
+
+  const applies = (eid, itemId) => {
+    if (itemId === 'book') return true;
+    const on = ENCH[eid].on;
+    return on === 'any' || on.includes(itemId);
+  };
+  const conflicts = (eid, enchMap) =>
+    Object.keys(enchMap).some(have => have !== eid && EXCL[eid] && EXCL[eid].has(have));
+
+  const unit = (kind, itemId, ench = {}, uses = 0) => ({kind, itemId, ench: {...ench}, uses});
+  const book = (ench, uses = 0) => unit('book', 'book', ench, uses);
+  const item = (itemId, ench = {}, uses = 0) => unit('item', itemId, ench, uses);
+
+  /**
+   * One anvil operation: sacrifice `b` onto target `a`. Pure.
+   * Returns {ok, cost, tooExpensive, result, dropped[], ignored[]} or {ok:false, reason}.
+   */
+  function combine(a, b){
+    if (a.kind === 'book' && b.kind !== 'book')
+      return {ok:false, reason:'A book target only accepts a book sacrifice.'};
+    if (a.kind === 'item' && b.kind === 'item' && a.itemId !== b.itemId)
+      return {ok:false, reason:'Item + item requires the same item type.'};
+    const useBookMult = b.kind === 'book';
+    let cost = pwp(a.uses) + pwp(b.uses);
+    const ench = {...a.ench};
+    const dropped = [], ignored = [];
+    let changed = false;
+    for (const [eid, lvl] of Object.entries(b.ench)){
+      if (a.kind === 'item' && !applies(eid, a.itemId)){ ignored.push(eid); continue; }
+      if (conflicts(eid, ench)){ cost += 1; dropped.push(eid); continue; }
+      const cur = ench[eid] || 0;
+      const fin = cur === lvl ? Math.min(lvl + 1, ENCH[eid].max) : Math.max(cur, lvl);
+      if (fin > cur || !(eid in ench)) changed = true;
+      ench[eid] = fin;
+      cost += fin * (useBookMult ? ENCH[eid].book : ENCH[eid].item);
+    }
+    if (!changed)
+      return {ok:false, reason:'Nothing transfers — the sacrifice adds no enchantment or upgrade.'};
+    const result = {kind:a.kind, itemId:a.itemId, ench, uses:Math.max(a.uses, b.uses) + 1};
+    return {ok:true, cost, tooExpensive: cost >= TOO_EXPENSIVE, result, dropped, ignored};
+  }
+
+  const enchSig = ench =>
+    Object.entries(ench).sort(([x],[y]) => x < y ? -1 : 1).map(([k,v]) => k + v).join(',');
+  const unitKey = u => u.kind + '|' + u.itemId + '|' + u.uses + '|' + enchSig(u.ench);
+
+  /**
+   * Exhaustive minimum-total-levels combine order over ≤ 8 units
+   * (dynamic programming across all binary merge trees, pruned per
+   * resulting unit state). Steps come back in a valid execution order.
+   */
+  function optimize(sources){
+    if (!sources.length) return {ok:false, errors:['Nothing to combine.']};
+    if (sources.length === 1) return {ok:true, steps:[], total:0, result:sources[0]};
+    if (sources.length > 8) return {ok:false, errors:['Cap is the target item + 7 books — split the job.']};
+    const full = (1 << sources.length) - 1;
+    const memo = new Map();
+    const solve = mask => {
+      if (memo.has(mask)) return memo.get(mask);
+      const out = new Map();
+      const bits = [];
+      for (let i = 0; i < sources.length; i++) if (mask & (1 << i)) bits.push(i);
+      if (bits.length === 1){
+        const u = sources[bits[0]];
+        out.set(unitKey(u), {unit:u, total:0, steps:[]});
+      } else {
+        const low = mask & -mask;
+        for (let sub = (mask - 1) & mask; sub > 0; sub = (sub - 1) & mask){
+          if (!(sub & low)) continue;                    // canonical split: sub keeps lowest bit
+          const rest = mask ^ sub;
+          for (const x of solve(sub).values())
+            for (const y of solve(rest).values())
+              for (const [t, s] of [[x, y], [y, x]]){
+                const c = combine(t.unit, s.unit);
+                if (!c.ok || c.tooExpensive) continue;
+                const cand = {
+                  unit: c.result,
+                  total: t.total + s.total + c.cost,
+                  steps: [...t.steps, ...s.steps,
+                          {target:t.unit, sac:s.unit, result:c.result, cost:c.cost, dropped:c.dropped}],
+                };
+                const k = unitKey(c.result);
+                const prev = out.get(k);
+                if (!prev || cand.total < prev.total) out.set(k, cand);
+              }
+        }
+      }
+      memo.set(mask, out);
+      return out;
+    };
+    let best = null;
+    for (const cand of solve(full).values())
+      if (!best || cand.total < best.total) best = cand;
+    if (!best)
+      return {ok:false, errors:['No valid order exists — every arrangement hits the 40-level ' +
+        '“Too Expensive” cap or has a sacrifice that transfers nothing. Split into fewer books.']};
+    const dropped = [...new Set(best.steps.flatMap(s => s.dropped))];
+    return {ok:true, steps:best.steps, total:best.total, result:best.unit, dropped};
+  }
+
+  /** Total for sacrificing books onto the item one by one in the given order (comparison only). */
+  function sequentialTotal(it, books){
+    let cur = it, total = 0;
+    for (const b of books){
+      const c = combine(cur, b);
+      if (!c.ok || c.tooExpensive) return null;
+      total += c.cost; cur = c.result;
+    }
+    return total;
+  }
+
+  return Object.freeze({ITEMS, ENCH, EXCL, TOO_EXPENSIVE,
+    pwp, applies, combine, optimize, sequentialTotal, unit, book, item});
+})();
+
+/* =====================================================================
+ *  BREWING ENGINE — independent pure-function namespace.
+ *  Java Edition 1.21.x brewing-stand mechanics (§6–§8).
+ *  No XP, no anvil interaction. Durations are display-only flavor.
+ * ===================================================================== */
+const BrewEngine = (() => {
+  const CYCLE_SECONDS = 20;          // §6.1 one cycle
+  const BOTTLES_PER_CYCLE = 3;       // §6.1 1–3 bottles per cycle
+  const CHARGES_PER_POWDER = 20;     // §6.1 one blaze powder = 20 fuel charges
+  const ARROWS_PER_CRAFT = 8;        // §6.5 8 arrows + 1 lingering → 8 tipped
+
+  /* §7 data — transcribed EXACTLY.
+     ii: may take glowstone ('iv' = Slowness's special case, becomes IV).
+     ext: may take redstone. corrupts_to: fermented_spider_eye conversion.
+     duration: base duration, display-only (null = not listed in §7). */
+  const EFFECTS = {
+    swiftness:       {name:'Swiftness',       ingredient:'sugar',                  ii:true,  ext:true,  corrupts_to:'slowness',     duration:'3:00'},
+    leaping:         {name:'Leaping',         ingredient:'rabbit_foot',            ii:true,  ext:true,  corrupts_to:'slowness',     duration:'3:00'},
+    strength:        {name:'Strength',        ingredient:'blaze_powder',           ii:true,  ext:true,  corrupts_to:null,           duration:'3:00'},
+    healing:         {name:'Healing',         ingredient:'glistering_melon_slice', ii:true,  ext:false, corrupts_to:'harming',      duration:'instant', instant:true},
+    poison:          {name:'Poison',          ingredient:'spider_eye',             ii:true,  ext:true,  corrupts_to:'harming',      duration:'0:45'},
+    regeneration:    {name:'Regeneration',    ingredient:'ghast_tear',             ii:true,  ext:true,  corrupts_to:null,           duration:'0:45'},
+    fire_resistance: {name:'Fire Resistance', ingredient:'magma_cream',            ii:false, ext:true,  corrupts_to:null,           duration:'3:00'},
+    water_breathing: {name:'Water Breathing', ingredient:'pufferfish',             ii:false, ext:true,  corrupts_to:null,           duration:'3:00'},
+    night_vision:    {name:'Night Vision',    ingredient:'golden_carrot',          ii:false, ext:true,  corrupts_to:'invisibility', duration:'3:00'},
+    turtle_master:   {name:'the Turtle Master', ingredient:'turtle_shell',         ii:true,  ext:true,  corrupts_to:null,           duration:'0:20'},
+    slow_falling:    {name:'Slow Falling',    ingredient:'phantom_membrane',       ii:false, ext:true,  corrupts_to:null,           duration:'1:30'},
+    wind_charged:    {name:'Wind Charging',   ingredient:'breeze_rod',             ii:false, ext:false, corrupts_to:null,           duration:'3:00'},
+    weaving:         {name:'Weaving',         ingredient:'cobweb',                 ii:false, ext:false, corrupts_to:null,           duration:'3:00'},
+    oozing:          {name:'Oozing',          ingredient:'slime_block',            ii:false, ext:false, corrupts_to:null,           duration:'3:00'},
+    infested:        {name:'Infestation',     ingredient:'stone',                  ii:false, ext:false, corrupts_to:null,           duration:'3:00'},
+    // §7: fermented_spider_eye ONTO WATER BOTTLE (the only non-Awkward base).
+    weakness:        {name:'Weakness',        ingredient:'fermented_spider_eye',   ii:false, ext:true,  corrupts_to:null,           duration:'1:30', base:'water'},
+    // Corruption-only effects — never brewed directly (§7 footer).
+    slowness:        {name:'Slowness',        ingredient:null, ii:'iv', ext:true,  corrupts_to:null, duration:null,      corruptionOnly:true},
+    harming:         {name:'Harming',         ingredient:null, ii:true, ext:false, corrupts_to:null, duration:'instant', corruptionOnly:true, instant:true},
+    invisibility:    {name:'Invisibility',    ingredient:null, ii:false, ext:true,  corrupts_to:null, duration:null,      corruptionOnly:true},
+  };
+
+  /* §6.4 — exactly the five listed conversions exist; derived from the
+     corrupts_to column so nothing extra can sneak in. Sources are sorted
+     alphabetically by ingredient id for the §8 tie-break. */
+  const CORRUPTION_SOURCES = {};
+  for (const [id, e] of Object.entries(EFFECTS))
+    if (e.corrupts_to) (CORRUPTION_SOURCES[e.corrupts_to] = CORRUPTION_SOURCES[e.corrupts_to] || []).push(id);
+  for (const list of Object.values(CORRUPTION_SOURCES))
+    list.sort((a, b) => EFFECTS[a].ingredient < EFFECTS[b].ingredient ? -1 : 1);
+
+  const ITEM_NAMES = {
+    nether_wart:'Nether Wart', sugar:'Sugar', rabbit_foot:'Rabbit’s Foot',
+    blaze_powder:'Blaze Powder', glistering_melon_slice:'Glistering Melon Slice',
+    spider_eye:'Spider Eye', ghast_tear:'Ghast Tear', magma_cream:'Magma Cream',
+    pufferfish:'Pufferfish', golden_carrot:'Golden Carrot', turtle_shell:'Turtle Shell',
+    phantom_membrane:'Phantom Membrane', breeze_rod:'Breeze Rod', cobweb:'Cobweb',
+    slime_block:'Slime Block', stone:'Stone', fermented_spider_eye:'Fermented Spider Eye',
+    redstone_dust:'Redstone Dust', glowstone_dust:'Glowstone Dust', gunpowder:'Gunpowder',
+    dragon_breath:'Dragon’s Breath', glass_bottle:'Glass Bottle', arrow:'Arrow',
+  };
+
+  const FORM_NAMES = {potion:'Potion', splash:'Splash Potion', lingering:'Lingering Potion'};
+  const TIER_LABEL = {1:'', 2:' II', 4:' IV'};
+
+  const water   = () => ({kind:'water'});
+  const awkward = () => ({kind:'awkward'});
+
+  const stateKey = s => s.kind !== 'potion' ? s.kind
+    : `${s.effect}|t${s.tier}|${s.extended ? 'E' : '-'}|${s.form}`;
+
+  const stateName = s => {
+    if (s.kind === 'water') return 'Water Bottle';
+    if (s.kind === 'awkward') return 'Awkward Potion';
+    return `${FORM_NAMES[s.form]} of ${EFFECTS[s.effect].name}${TIER_LABEL[s.tier]}` +
+           (s.extended ? ' (Extended)' : '');
+  };
+
+  /* Human-readable reasons — reused verbatim by the UI tooltips (§8). */
+  const whyNoII = id => {
+    const e = EFFECTS[id];
+    return e.ii ? null : `${e.name} has no level-II variant.`;
+  };
+  const whyNoExt = id => {
+    const e = EFFECTS[id];
+    if (e.ext) return null;
+    return e.instant ? `${e.name} is instant — instant effects cannot be extended.`
+                     : `${e.name} has no extended variant.`;
+  };
+  const MUTEX_MSG = 'Potency II and Extended are mutually exclusive — choose one, not both.';
+
+  /**
+   * §6.3 / §6.4 transition semantics. Pure: state + ingredient → new state.
+   */
+  function applyIngredient(state, ing){
+    const bad = reason => ({ok:false, reason});
+    if (state.kind === 'water'){
+      if (ing === 'nether_wart') return {ok:true, state:awkward()};
+      if (ing === 'fermented_spider_eye')
+        return {ok:true, state:{kind:'potion', effect:'weakness', tier:1, extended:false, form:'potion'}};
+      return bad(`A Water Bottle only accepts nether_wart or fermented_spider_eye, not ${ing}.`);
+    }
+    if (state.kind === 'awkward'){
+      const id = Object.keys(EFFECTS).find(k =>
+        EFFECTS[k].ingredient === ing && !EFFECTS[k].corruptionOnly && EFFECTS[k].base !== 'water');
+      if (!id) return bad(`${ing} does not brew onto an Awkward Potion.`);
+      return {ok:true, state:{kind:'potion', effect:id, tier:1, extended:false, form:'potion'}};
+    }
+    // potion states
+    const e = EFFECTS[state.effect];
+    switch (ing){
+      case 'glowstone_dust': {                                     // §6.3a
+        if (!e.ii) return bad(whyNoII(state.effect));
+        const tier = state.effect === 'slowness' ? 4 : 2;          // Slowness → IV
+        return {ok:true, state:{...state, tier, extended:false}};  // removes extension
+      }
+      case 'redstone_dust': {                                      // §6.3b
+        if (!e.ext) return bad(whyNoExt(state.effect));
+        return {ok:true, state:{...state, extended:true, tier:1}}; // removes potency
+      }
+      case 'gunpowder':                                            // §6.3d — any potion
+        if (state.form !== 'potion') return bad('Gunpowder applies to a regular potion.');
+        return {ok:true, state:{...state, form:'splash'}};
+      case 'dragon_breath':                                        // §6.3d — from Splash only
+        if (state.form !== 'splash') return bad('Dragon’s Breath applies to a Splash potion only.');
+        return {ok:true, state:{...state, form:'lingering'}};
+      case 'fermented_spider_eye': {                               // §6.4 corruption
+        if (!e.corrupts_to) return bad(`${e.name} has no corruption — only the five listed conversions exist.`);
+        const tgt = EFFECTS[e.corrupts_to];
+        // preserve potency/extension only when the result supports it
+        const tier = state.tier > 1 && tgt.ii === true ? state.tier : 1;
+        const extended = state.extended && tgt.ext;
+        return {ok:true, state:{kind:'potion', effect:e.corrupts_to, tier, extended, form:state.form}};
+      }
+      default:
+        return bad(`${ing} is not a valid ingredient for ${stateName(state)}.`);
+    }
+  }
+
+  function validateTarget(t){
+    const errors = [];
+    const e = EFFECTS[t.effect];
+    if (!e){ return {ok:false, errors:[`Unknown effect: ${t.effect}`]}; }
+    if (t.potency2 && t.extended) errors.push(MUTEX_MSG);          // §6.3c
+    else {
+      if (t.potency2 && !e.ii) errors.push(whyNoII(t.effect));
+      if (t.extended && !e.ext) errors.push(whyNoExt(t.effect));
+    }
+    if (!['potion','splash','lingering','tipped_arrow'].includes(t.form))
+      errors.push(`Unknown form: ${t.form}`);
+    if (!Number.isInteger(t.qty) || t.qty < 1)
+      errors.push(t.form === 'tipped_arrow' ? 'Arrow count must be a whole number ≥ 1.'
+                                            : 'Quantity must be a whole number ≥ 1.');
+    return {ok: errors.length === 0, errors};
+  }
+
+  /**
+   * §6.3d canonical chain, always valid & minimal-length — no search:
+   * base → effect ingredient → (glowstone | redstone) → gunpowder → dragon_breath.
+   * Corruption-only targets auto-insert source potion + fermented_spider_eye (§8),
+   * tie broken alphabetically by ingredient id, alternate noted.
+   */
+  function buildChain(t){
+    const v = validateTarget(t);
+    if (!v.ok) return {ok:false, errors:v.errors};
+    const e = EFFECTS[t.effect];
+    const seq = [];
+    let altNote = null, routeVia = null;
+    if (e.corruptionOnly){
+      const sources = CORRUPTION_SOURCES[t.effect] || [];
+      routeVia = sources[0];
+      seq.push('nether_wart', EFFECTS[routeVia].ingredient, 'fermented_spider_eye');
+      if (sources.length > 1){
+        const alt = sources[1];
+        altNote = `Equal-length alternate route: via ${EFFECTS[alt].name} (${EFFECTS[alt].ingredient}).`;
+      }
+    } else if (e.base === 'water'){
+      seq.push(e.ingredient);                       // Weakness: FSE onto Water Bottle
+    } else {
+      seq.push('nether_wart', e.ingredient);
+    }
+    if (t.potency2) seq.push('glowstone_dust');
+    if (t.extended) seq.push('redstone_dust');
+    const wantsLingering = t.form === 'lingering' || t.form === 'tipped_arrow';
+    if (t.form === 'splash' || wantsLingering) seq.push('gunpowder');
+    if (wantsLingering) seq.push('dragon_breath');
+
+    const steps = [];
+    let cur = water();
+    for (const ing of seq){
+      const r = applyIngredient(cur, ing);
+      if (!r.ok) return {ok:false, errors:[r.reason]};   // unreachable for validated targets
+      const step = {from:cur, ingredient:ing, to:r.state};
+      if (ing === 'fermented_spider_eye' && altNote) step.note = altNote;
+      steps.push(step);
+      cur = r.state;
+    }
+    const crafts  = t.form === 'tipped_arrow' ? Math.ceil(t.qty / ARROWS_PER_CRAFT) : 0; // §6.5
+    const bottles = t.form === 'tipped_arrow' ? crafts : t.qty;
+    return {ok:true, steps, bottles, crafts, routeVia, final:cur};
+  }
+
+  /**
+   * §8 batch math. Pools every bottle across all targets, groups by
+   * identical (current_state, ingredient) transition, ceil(bottles/3)
+   * cycles per group, one ingredient per cycle.
+   */
+  function planBatch(targets, stands = 1){
+    const errors = [];
+    if (!Number.isInteger(stands) || stands < 1)
+      errors.push('Brewing stands must be a whole number ≥ 1.');
+    if (!targets.length) errors.push('Add at least one target.');
+    const chains = [];
+    targets.forEach((t, i) => {
+      const c = buildChain(t);
+      if (!c.ok) errors.push(...c.errors.map(m => `Target ${i + 1}: ${m}`));
+      else chains.push({index:i, target:t, ...c});
+    });
+    if (errors.length) return {ok:false, errors};
+
+    const byKey = new Map();
+    chains.forEach(c => c.steps.forEach((s, depth) => {
+      const key = stateKey(s.from) + ' + ' + s.ingredient;
+      let g = byKey.get(key);
+      if (!g){
+        g = {key, from:s.from, to:s.to, ingredient:s.ingredient,
+             bottles:0, minDepth:depth, order:byKey.size};
+        byKey.set(key, g);
+      }
+      g.bottles += c.bottles;
+      g.minDepth = Math.min(g.minDepth, depth);
+      s.group = g;
+    }));
+
+    const groups = [...byKey.values()]
+      .sort((a, b) => a.minDepth - b.minDepth || a.order - b.order);
+    let cursor = 0;
+    for (const g of groups){
+      g.cycles = Math.ceil(g.bottles / BOTTLES_PER_CYCLE);
+      g.firstCycle = cursor + 1;
+      cursor += g.cycles;
+      g.lastCycle = cursor;
+    }
+    const totalCycles = cursor;
+    const seconds = Math.ceil(totalCycles * CYCLE_SECONDS / stands);   // ideal hand-off
+    const fuel = Math.ceil(totalCycles / CHARGES_PER_POWDER);
+    const bottles = chains.reduce((n, c) => n + c.bottles, 0);
+
+    const hints = groups
+      .filter(g => g.bottles % BOTTLES_PER_CYCLE !== 0)
+      .map(g => ({
+        key: g.key, ingredient: g.ingredient, from: g.from, cycle: g.lastCycle,
+        bottlesInCycle: g.bottles % BOTTLES_PER_CYCLE,
+        spare: BOTTLES_PER_CYCLE - (g.bottles % BOTTLES_PER_CYCLE),
+      }));
+
+    const ingCounts = new Map();
+    for (const g of groups)
+      ingCounts.set(g.ingredient, (ingCounts.get(g.ingredient) || 0) + g.cycles);
+    const bom = [];
+    for (const [id, count] of ingCounts)
+      bom.push({id, count, role:'brewing ingredient'});
+    bom.push({id:'glass_bottle', count:bottles, role:'containers — fill with water'});
+    const crafts = chains.reduce((n, c) => n + c.crafts, 0);
+    const arrowsNeeded = crafts * ARROWS_PER_CRAFT;
+    if (arrowsNeeded) bom.push({id:'arrow', count:arrowsNeeded, role:'tipped-arrow crafting'});
+    bom.push({id:'blaze_powder', count:fuel, role:`fuel — 1 powder per ${CHARGES_PER_POWDER} cycles`});
+
+    const tippedProduced = arrowsNeeded;
+    const tippedRequested = chains.reduce(
+      (n, c) => n + (c.target.form === 'tipped_arrow' ? c.target.qty : 0), 0);
+
+    return {ok:true, chains, groups, totalCycles, seconds, stands, fuel, bottles,
+            bom, hints, crafts, tippedProduced, tippedRequested};
+  }
+
+  return Object.freeze({CYCLE_SECONDS, BOTTLES_PER_CYCLE, CHARGES_PER_POWDER, ARROWS_PER_CRAFT,
+    EFFECTS, CORRUPTION_SOURCES, ITEM_NAMES, MUTEX_MSG,
+    water, awkward, stateKey, stateName, whyNoII, whyNoExt,
+    applyIngredient, validateTarget, buildChain, planBatch});
+})();
+
+/* =====================================================================
+ *  SELF-TESTS — §5: run BOTH suites, console.table all results.
+ *  Anvil T1–T5, brewing B1–B5 (§9).
+ * ===================================================================== */
+function run_self_tests(){
+  const rows = [];
+  const t = (suite, id, name, actual, expected) => {
+    const pass = JSON.stringify(actual) === JSON.stringify(expected);
+    rows.push({suite, id, name, pass: pass ? 'PASS' : 'FAIL',
+      expected: JSON.stringify(expected), actual: JSON.stringify(actual)});
+  };
+  const A = AnvilEngine, B = BrewEngine;
+
+  /* ---- anvil suite ---- */
+  t('anvil', 'T1', 'prior-work penalty is 2^uses − 1',
+    [0,1,2,3,4,5].map(A.pwp), [0,1,3,7,15,31]);
+
+  const r2 = A.combine(A.book({sharpness:4}), A.book({sharpness:4}));
+  t('anvil', 'T2', 'Sharpness IV + Sharpness IV books → Sharpness V @ 5 levels',
+    {ok:r2.ok, lvl:r2.ok ? r2.result.ench.sharpness : null, cost:r2.ok ? r2.cost : null},
+    {ok:true, lvl:5, cost:5});
+
+  const r3 = A.combine(A.item('sword', {sharpness:5}), A.book({smite:5}));
+  t('anvil', 'T3', 'conflicting-only sacrifice transfers nothing → invalid',
+    {ok:r3.ok}, {ok:false});
+
+  const r4 = A.combine(A.item('sword', {sharpness:5}, 5), A.book({mending:1}, 4));
+  t('anvil', 'T4', 'cost 31+15+2 = 48 ≥ 40 → Too Expensive',
+    {cost:r4.cost, tooExpensive:r4.tooExpensive}, {cost:48, tooExpensive:true});
+
+  const t5books = [A.book({sharpness:5}), A.book({mending:1}),
+                   A.book({looting:3}), A.book({unbreaking:3})];
+  const r5 = A.optimize([A.item('sword'), ...t5books]);
+  const seq5 = A.sequentialTotal(A.item('sword'), t5books);
+  t('anvil', 'T5', 'optimizer: Sharp V+Mending+Looting III+Unbreaking III on sword → 23 (< 27 one-by-one)',
+    {ok:r5.ok, total:r5.total, steps:r5.ok ? r5.steps.length : null, beatsSequential:r5.total < seq5},
+    {ok:true, total:23, steps:4, beatsSequential:true});
+
+  /* ---- brewing suite ---- */
+  const b1 = B.planBatch([{effect:'strength', potency2:true, extended:false, form:'splash', qty:1}], 1);
+  t('brewing', 'B1', 'Splash Strength II ×1 → 4 cycles: wart, blaze, glowstone, gunpowder',
+    {ok:b1.ok, cycles:b1.ok ? b1.totalCycles : null,
+     ings:b1.ok ? b1.groups.map(g => g.ingredient) : null},
+    {ok:true, cycles:4, ings:['nether_wart','blaze_powder','glowstone_dust','gunpowder']});
+
+  const b2 = B.planBatch([{effect:'weakness', potency2:false, extended:true, form:'potion', qty:1}], 1);
+  t('brewing', 'B2', 'Extended Weakness ×1 → 2 cycles (FSE onto water, redstone); no nether wart in bill',
+    {ok:b2.ok, cycles:b2.ok ? b2.totalCycles : null,
+     ings:b2.ok ? b2.groups.map(g => g.ingredient) : null,
+     wartInBill:b2.ok ? b2.bom.some(r => r.id === 'nether_wart') : null},
+    {ok:true, cycles:2, ings:['fermented_spider_eye','redstone_dust'], wartInBill:false});
+
+  const b3 = B.planBatch([{effect:'harming', potency2:true, extended:false, form:'lingering', qty:1}], 1);
+  const b3ings = b3.ok ? b3.groups.map(g => g.ingredient) : [];
+  const b3alt = b3.ok ? (b3.chains[0].steps.find(s => s.note) || {}).note || '' : '';
+  t('brewing', 'B3', 'Lingering Harming II ×1 → 6 cycles, ends gunpowder→dragon_breath, via healing, poison noted',
+    {ok:b3.ok, cycles:b3.ok ? b3.totalCycles : null,
+     lastTwo:b3ings.slice(-2), viaHealing:b3ings.includes('glistering_melon_slice'),
+     altNotesPoison:/Poison \(spider_eye\)/.test(b3alt)},
+    {ok:true, cycles:6, lastTwo:['gunpowder','dragon_breath'], viaHealing:true, altNotesPoison:true});
+
+  const b4 = B.planBatch([{effect:'swiftness', potency2:true, extended:true, form:'potion', qty:1}], 1);
+  t('brewing', 'B4', 'II + extended together → validation error, no plan',
+    {ok:b4.ok, mentionsMutex:(b4.errors || []).some(m => m.includes('mutually exclusive')),
+     hasPlan:'totalCycles' in b4},
+    {ok:false, mentionsMutex:true, hasPlan:false});
+
+  const b5 = B.planBatch([{effect:'strength', potency2:true, extended:false, form:'potion', qty:7}], 1);
+  t('brewing', 'B5', '7× Strength II (3 transitions) → 9 cycles, 3 of each ingredient, fuel 1, 3 spare-slot hints',
+    {ok:b5.ok, cycles:b5.ok ? b5.totalCycles : null,
+     perGroup:b5.ok ? b5.groups.map(g => g.cycles) : null,
+     wart:b5.ok ? b5.bom.find(r => r.id === 'nether_wart').count : null,
+     blazeIngredient:b5.ok ? b5.bom.find(r => r.id === 'blaze_powder' && r.role === 'brewing ingredient').count : null,
+     glowstone:b5.ok ? b5.bom.find(r => r.id === 'glowstone_dust').count : null,
+     fuel:b5.ok ? b5.fuel : null, hints:b5.ok ? b5.hints.length : null},
+    {ok:true, cycles:9, perGroup:[3,3,3], wart:3, blazeIngredient:3, glowstone:3, fuel:1, hints:3});
+
+  console.table(rows);
+  const failed = rows.filter(r => r.pass !== 'PASS');
+  console.log(failed.length === 0
+    ? `run_self_tests: all ${rows.length} tests passed`
+    : `run_self_tests: ${failed.length}/${rows.length} FAILED`);
+  return rows;
+}
+
+/* =====================================================================
+ *  UI — shared helpers + one controller per module + tab switcher.
+ *  Everything below is DOM-only; the engines never touch it.
+ * ===================================================================== */
+const HAS_DOM = typeof document !== 'undefined';
+
+const ROMAN = ['0','I','II','III','IV','V','VI','VII','VIII','IX','X'];
+function fmtTime(seconds){
+  const h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60), s = seconds % 60;
+  const mm = String(m).padStart(h ? 2 : 1, '0'), ss = String(s).padStart(2, '0');
+  return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+function el(tag, attrs = {}, ...kids){
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)){
+    if (k === 'class') n.className = v;
+    else if (k === 'text') n.textContent = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  }
+  for (const kid of kids)
+    if (kid != null) n.append(kid.nodeType ? kid : document.createTextNode(kid));
+  return n;
+}
+const $ = HAS_DOM ? sel => document.querySelector(sel) : () => null;
+
+function tile(num, cap, sub){
+  return el('div', {class:'tile'},
+    el('div', {class:'num'}, num, sub ? el('small', {}, ' ' + sub) : null),
+    el('div', {class:'cap', text:cap}));
+}
+function stateChip(text){ return el('span', {class:'state', text}); }
+function ingChip(text){ return el('span', {class:'ing', text:'+ ' + text}); }
+function arrow(){ return el('span', {class:'arr', 'aria-hidden':'true', text:'→'}); }
+
+/* ------------------------------ ANVIL UI ------------------------------ */
+function bootAnvil(){
+  const A = AnvilEngine;
+  const S = {itemId:'sword', uses:0, have:[], books:[]};   // module state, kept in memory across tab switches
+
+  const selItem = $('#an-item'), inUses = $('#an-uses'),
+        selHaveE = $('#an-have-ench'), selHaveL = $('#an-have-lvl'),
+        selBookE = $('#an-book-ench'), selBookL = $('#an-book-lvl'),
+        out = $('#an-out');
+
+  for (const [id, it] of Object.entries(A.ITEMS))
+    selItem.append(el('option', {value:id, text:it.name}));
+  selItem.value = S.itemId;
+
+  function fillEnchSelect(sel){
+    sel.textContent = '';
+    for (const [id, e] of Object.entries(A.ENCH))
+      if (A.applies(id, S.itemId))
+        sel.append(el('option', {value:id, text:e.name}));
+    fillLvl(sel === selHaveE ? selHaveL : selBookL, sel.value);
+  }
+  function fillLvl(lvlSel, eid){
+    lvlSel.textContent = '';
+    const max = A.ENCH[eid] ? A.ENCH[eid].max : 1;
+    for (let l = 1; l <= max; l++) lvlSel.append(el('option', {value:l, text:ROMAN[l]}));
+    lvlSel.value = String(max);
+  }
+
+  const enchLine = ench => Object.entries(ench)
+    .map(([id, l]) => `${A.ENCH[id].name} ${ROMAN[l]}`).join(' + ') || 'no enchantments';
+  const unitLabel = u => u.kind === 'book'
+    ? `Book: ${enchLine(u.ench)}`
+    : `${A.ITEMS[u.itemId].name} (${enchLine(u.ench)})`;
+
+  function renderLists(){
+    const haveUl = $('#an-have-list'), bookUl = $('#an-book-list');
+    haveUl.textContent = ''; bookUl.textContent = '';
+    S.have.forEach((h, i) => haveUl.append(el('li', {},
+      el('span', {}, `${A.ENCH[h.id].name} ${ROMAN[h.lvl]}`),
+      el('button', {class:'mini', type:'button', 'aria-label':`Remove ${A.ENCH[h.id].name}`,
+        onclick:() => { S.have.splice(i, 1); render(); }}, '✕'))));
+    S.books.forEach((b, i) => bookUl.append(el('li', {},
+      el('span', {}, `Book — ${A.ENCH[b.id].name} ${ROMAN[b.lvl]}`),
+      el('button', {class:'mini', type:'button', 'aria-label':`Remove book ${A.ENCH[b.id].name}`,
+        onclick:() => { S.books.splice(i, 1); render(); }}, '✕'))));
+  }
+
+  function renderPlan(){
+    out.textContent = '';
+    if (!S.books.length){
+      out.append(el('p', {class:'empty',
+        text:'Add at least one enchanted book — the optimizer explores every combine order and returns the cheapest.'}));
+      return;
+    }
+    const itemUnit = A.item(S.itemId,
+      Object.fromEntries(S.have.map(h => [h.id, h.lvl])), S.uses);
+    const books = S.books.map(b => A.book({[b.id]: b.lvl}));
+    const plan = A.optimize([itemUnit, ...books]);
+    if (!plan.ok){
+      for (const m of plan.errors) out.append(el('p', {class:'msg-err', text:m}));
+      return;
+    }
+    const seq = A.sequentialTotal(itemUnit, books);
+    const priciest = Math.max(...plan.steps.map(s => s.cost));
+    const tiles = el('div', {class:'tiles'},
+      tile(String(plan.total), 'total levels'),
+      tile(String(plan.steps.length), 'anvil operations'),
+      tile(String(priciest), 'priciest single step'),
+      seq !== null ? tile(String(seq - plan.total), 'levels saved vs one-by-one') : null);
+    out.append(tiles);
+    out.append(el('p', {class:'assume',
+      text:'Costs are XP levels paid per operation. Prior-work penalty doubles with every anvil use; 40+ levels is “Too Expensive” in survival.'}));
+    const list = el('ol', {class:'steps'});
+    plan.steps.forEach((s, i) => {
+      const step = el('li', {class:'step'},
+        el('span', {class:'no'}, 'step', el('b', {text:String(i + 1)})),
+        el('span', {class:'tr'},
+          stateChip(`${unitLabel(s.target)} · PW ${s.target.uses}`),
+          ingChip(unitLabel(s.sac)),
+          arrow(),
+          stateChip(`${unitLabel(s.result)} · PW ${s.result.uses}`),
+          el('span', {class:'no', style:'grid-row:auto', text:`${s.cost} lv`})));
+      if (s.dropped.length)
+        step.append(el('span', {class:'note',
+          text:`Dropped (conflicts, +1 level each): ${s.dropped.map(d => A.ENCH[d].name).join(', ')}`}));
+      list.append(step);
+    });
+    out.append(el('div', {class:'chain'},
+      el('div', {class:'chain-head'},
+        el('span', {class:'t', text:'Combine order'}),
+        el('span', {class:'d', text:'each step: target · PW(prior-work uses) + sacrifice → result'})),
+      list));
+    if (plan.dropped.length)
+      out.append(el('p', {class:'msg-warn',
+        text:'Some enchantments conflict and were dropped: ' +
+             plan.dropped.map(d => A.ENCH[d].name).join(', ')}));
+  }
+
+  function render(){ renderLists(); renderPlan(); }
+
+  selItem.addEventListener('change', () => {
+    S.itemId = selItem.value;
+    S.have = S.have.filter(h => A.applies(h.id, S.itemId));
+    S.books = S.books.filter(b => A.applies(b.id, S.itemId));
+    fillEnchSelect(selHaveE); fillEnchSelect(selBookE); render();
+  });
+  inUses.addEventListener('change', () => {
+    S.uses = Math.max(0, Math.min(8, parseInt(inUses.value, 10) || 0));
+    inUses.value = S.uses; renderPlan();
+  });
+  selHaveE.addEventListener('change', () => fillLvl(selHaveL, selHaveE.value));
+  selBookE.addEventListener('change', () => fillLvl(selBookL, selBookE.value));
+  $('#an-have-add').addEventListener('click', () => {
+    const id = selHaveE.value, lvl = parseInt(selHaveL.value, 10);
+    const existing = S.have.find(h => h.id === id);
+    if (existing) existing.lvl = lvl; else S.have.push({id, lvl});
+    render();
+  });
+  $('#an-book-add').addEventListener('click', () => {
+    if (S.books.length >= 7){
+      renderPlan();
+      out.prepend(el('p', {class:'msg-err',
+        text:'Cap is 7 books per job (the optimizer is exhaustive). Split the job or remove a book.'}));
+      return;
+    }
+    S.books.push({id:selBookE.value, lvl:parseInt(selBookL.value, 10)});
+    render();
+  });
+
+  fillEnchSelect(selHaveE); fillEnchSelect(selBookE); render();
+}
+
+/* ----------------------------- BREWING UI ----------------------------- */
+function bootBrew(){
+  const B = BrewEngine;
+  const S = {targets:[], stands:1};                        // module state, kept in memory across tab switches
+
+  const selEffect = $('#br-effect'), potWrap = $('#br-pot-wrap'), pot = $('#br-pot'),
+        potLabel = $('#br-pot-label'), potWhy = $('#br-pot-why'),
+        extWrap = $('#br-ext-wrap'), ext = $('#br-ext'), extWhy = $('#br-ext-why'),
+        selForm = $('#br-form'), qty = $('#br-qty'), qtyLab = $('#br-qty-lab'),
+        stands = $('#br-stands'), out = $('#br-out'), durP = $('#br-duration');
+
+  const direct = el('optgroup', {label:'Brewed directly'});
+  const corr = el('optgroup', {label:'Corruption-only (auto-routes via source potion + fermented spider eye)'});
+  for (const [id, e] of Object.entries(B.EFFECTS))
+    (e.corruptionOnly ? corr : direct).append(el('option', {value:id, text:e.name.replace(/^the /, 'The ')}));
+  selEffect.append(direct, corr);
+
+  function syncToggles(){
+    const id = selEffect.value, e = B.EFFECTS[id];
+    durP.textContent = e.duration
+      ? `Base duration ${e.duration} — display-only flavor; II/extended variants not modeled.`
+      : 'Base duration not listed — durations are display-only flavor anyway.';
+    const noII = B.whyNoII(id), noExt = B.whyNoExt(id);
+    potLabel.textContent = id === 'slowness'
+      ? 'Potency IV (glowstone dust — Slowness skips II)' : 'Potency II (glowstone dust)';
+    pot.disabled = !!noII; potWhy.textContent = noII || '';
+    potWrap.classList.toggle('off', !!noII);
+    potWrap.title = noII || 'Glowstone dust upgrade. Mutually exclusive with Extended.';
+    if (noII) pot.checked = false;
+    ext.disabled = !!noExt; extWhy.textContent = noExt || '';
+    extWrap.classList.toggle('off', !!noExt);
+    extWrap.title = noExt || 'Redstone dust upgrade. Mutually exclusive with Potency II.';
+    if (noExt) ext.checked = false;
+    qtyLab.textContent = selForm.value === 'tipped_arrow' ? 'Arrows' : 'Quantity';
+  }
+
+  const targetLabel = t => {
+    const e = B.EFFECTS[t.effect];
+    const tier = t.potency2 ? (t.effect === 'slowness' ? ' IV' : ' II') : '';
+    const extS = t.extended ? ' (Extended)' : '';
+    if (t.form === 'tipped_arrow')
+      return `${t.qty}× Tipped Arrow — ${e.name}${tier}${extS}`;
+    const form = {potion:'Potion', splash:'Splash Potion', lingering:'Lingering Potion'}[t.form];
+    return `${t.qty}× ${form} of ${e.name}${tier}${extS}`;
+  };
+
+  function renderTargets(){
+    const ul = $('#br-targets');
+    ul.textContent = '';
+    $('#br-none').style.display = S.targets.length ? 'none' : '';
+    S.targets.forEach((t, i) => {
+      const e = B.EFFECTS[t.effect];
+      ul.append(el('li', {},
+        el('span', {}, targetLabel(t),
+          el('span', {class:'meta', text: e.duration ? ` · base ${e.duration}` : ''})),
+        el('button', {class:'mini', type:'button', 'aria-label':`Remove ${targetLabel(t)}`,
+          onclick:() => { S.targets.splice(i, 1); render(); }}, '✕')));
+    });
+  }
+
+  function renderPlan(){
+    out.textContent = '';
+    if (!S.targets.length){
+      out.append(el('p', {class:'empty',
+        text:'Queue up targets on the left. Bottles are pooled across every target, so shared steps (like Water → Awkward) merge into the same cycles.'}));
+      return;
+    }
+    const plan = B.planBatch(S.targets, S.stands);
+    if (!plan.ok){
+      for (const m of plan.errors) out.append(el('p', {class:'msg-err', text:m}));
+      return;
+    }
+    out.append(el('div', {class:'tiles'},
+      tile(String(plan.totalCycles), 'brew cycles', '× 20 s'),
+      tile(fmtTime(plan.seconds), 'elapsed time'),
+      tile(String(plan.fuel), 'blaze powder', 'fuel'),
+      tile(String(plan.bottles), 'bottles')));
+    out.append(el('p', {class:'assume',
+      text:`Time = ${plan.totalCycles} cycles × ${B.CYCLE_SECONDS} s ÷ ${plan.stands} stand${plan.stands > 1 ? 's' : ''} — assumes ideal hand-off (stands never sit idle). One blaze powder fuels ${B.CHARGES_PER_POWDER} cycles.`}));
+
+    plan.chains.forEach(c => {
+      const head = el('div', {class:'chain-head'},
+        el('span', {class:'t', text:`Target ${c.index + 1} — ${targetLabel(c.target)}`}),
+        el('span', {class:'d', text:`${c.bottles} bottle${c.bottles > 1 ? 's' : ''} through ${c.steps.length} transitions`}));
+      const list = el('ol', {class:'steps'});
+      c.steps.forEach(s => {
+        const g = s.group;
+        const cyc = g.firstCycle === g.lastCycle ? `cycle ${g.firstCycle}`
+                                                 : `cycles ${g.firstCycle}–${g.lastCycle}`;
+        const step = el('li', {class:'step'},
+          el('span', {class:'no'}, cyc.split(' ')[0], el('b', {text:cyc.split(' ')[1]})),
+          el('span', {class:'tr'},
+            stateChip(B.stateName(s.from)),
+            ingChip(B.ITEM_NAMES[s.ingredient] || s.ingredient),
+            arrow(),
+            stateChip(B.stateName(s.to))));
+        if (s.note) step.append(el('span', {class:'note alt', text:s.note}));
+        list.append(step);
+      });
+      if (c.target.form === 'tipped_arrow'){
+        const surplus = c.crafts * B.ARROWS_PER_CRAFT - c.target.qty;
+        list.append(el('li', {class:'step craft'},
+          el('span', {class:'no'}, 'craft', el('b', {text:'×' + c.crafts})),
+          el('span', {class:'tr'},
+            stateChip(`${c.crafts}× ${B.stateName(c.final)}`),
+            ingChip(`${c.crafts * B.ARROWS_PER_CRAFT}× Arrow`),
+            arrow(),
+            stateChip(`${c.crafts * B.ARROWS_PER_CRAFT}× Tipped Arrow`)),
+          el('span', {class:'note',
+            text:`Crafting, not brewing: 8 arrows + 1 lingering potion → 8 tipped arrows.` +
+                 (surplus ? ` ${surplus} surplus arrow${surplus > 1 ? 's' : ''} beyond the ${c.target.qty} requested.` : '')})));
+      }
+      out.append(el('div', {class:'chain'}, head, list));
+    });
+
+    if (plan.hints.length){
+      const ul = el('ul', {class:'hints'});
+      for (const h of plan.hints)
+        ul.append(el('li', {},
+          el('b', {text:`Cycle ${h.cycle}`}),
+          ` (${B.stateName(h.from)} + ${B.ITEM_NAMES[h.ingredient]}) runs with ` +
+          `${h.bottlesInCycle} bottle${h.bottlesInCycle > 1 ? 's' : ''} — ${h.spare} spare slot${h.spare > 1 ? 's' : ''}. ` +
+          `Room for ${h.spare} more bottle${h.spare > 1 ? 's' : ''} at no extra cycles or fuel on this step.`));
+      out.append(el('div', {class:'chain'},
+        el('div', {class:'chain-head'}, el('span', {class:'t', text:'Spare-slot hints'})), ul));
+    }
+
+    const tbl = el('table', {class:'bom'},
+      el('caption', {text:'Consolidated bill of materials'}),
+      el('thead', {}, el('tr', {},
+        el('th', {scope:'col', text:'Item'}), el('th', {scope:'col', text:'Count'}),
+        el('th', {scope:'col', text:'Used as'}))));
+    const tb = el('tbody');
+    for (const r of plan.bom)
+      tb.append(el('tr', {},
+        el('td', {}, B.ITEM_NAMES[r.id] || r.id),
+        el('td', {class:'n', text:'× ' + r.count}),
+        el('td', {}, el('span', {class:'role', text:r.role}))));
+    tbl.append(tb);
+    out.append(tbl);
+    if (plan.tippedRequested && plan.tippedProduced > plan.tippedRequested)
+      out.append(el('p', {class:'assume',
+        text:`Tipped arrows craft in batches of 8 — you asked for ${plan.tippedRequested}, the plan yields ${plan.tippedProduced}.`}));
+  }
+
+  function render(){ renderTargets(); renderPlan(); }
+
+  selEffect.addEventListener('change', syncToggles);
+  selForm.addEventListener('change', syncToggles);
+  pot.addEventListener('change', () => { if (pot.checked) ext.checked = false; });
+  ext.addEventListener('change', () => { if (ext.checked) pot.checked = false; });
+  $('#br-add').addEventListener('click', () => {
+    const t = {effect:selEffect.value, potency2:pot.checked, extended:ext.checked,
+               form:selForm.value, qty:parseInt(qty.value, 10) || 0};
+    const v = B.validateTarget(t);
+    if (!v.ok){
+      out.textContent = '';
+      for (const m of v.errors) out.append(el('p', {class:'msg-err', text:m}));
+      return;
+    }
+    S.targets.push(t); render();
+  });
+  stands.addEventListener('change', () => {
+    S.stands = Math.max(1, Math.min(64, parseInt(stands.value, 10) || 1));
+    stands.value = S.stands; renderPlan();
+  });
+
+  syncToggles(); render();
+}
+
+/* ------------------------------- TABS -------------------------------- */
+function bootTabs(){
+  const tabs = [...document.querySelectorAll('[role=tab]')];
+  function select(tab){
+    for (const t of tabs){
+      const on = t === tab;
+      t.setAttribute('aria-selected', String(on));
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    }
+    tab.focus();
+  }
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => select(tab));
+    tab.addEventListener('keydown', ev => {
+      const dir = {ArrowRight:1, ArrowLeft:-1, Home:0, End:tabs.length - 1}[ev.key];
+      if (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft')
+        select(tabs[(i + dir + tabs.length) % tabs.length]);
+      else if (ev.key === 'Home') select(tabs[0]);
+      else if (ev.key === 'End') select(tabs[tabs.length - 1]);
+      else return;
+      ev.preventDefault();
+    });
+  });
+}
+
+/* ------------------------------- BOOT -------------------------------- */
+if (HAS_DOM){
+  const boot = () => {
+    bootTabs(); bootAnvil(); bootBrew();
+    const rows = run_self_tests();
+    const failed = rows.filter(r => r.pass !== 'PASS').length;
+    const badge = document.getElementById('test-badge');
+    badge.textContent = failed === 0
+      ? `self-tests: ${rows.length}/${rows.length} passing (see console.table)`
+      : `self-tests: ${failed} FAILING — check console`;
+    badge.classList.toggle('bad', failed > 0);
+  };
+  if (document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+}
+
+/* Node/test harness export — engines are DOM-free by construction. */
+if (typeof module !== 'undefined' && module.exports)
+  module.exports = {AnvilEngine, BrewEngine, run_self_tests};
+</script>
+</body>
+</html>
