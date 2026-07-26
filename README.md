@@ -1,12 +1,13 @@
 # Minecraft Calc
 
-Two Minecraft **Java Edition 1.21.x** planning calculators — an **Anvil
-Combiner** and a **Brewing Planner** — bundled into one self-contained HTML
-file. No build step, no install, no server, no network calls, no
-dependencies: open `index.html` in a browser and it works.
+Three Minecraft **Java Edition 1.21.x** planning tools — an **Anvil
+Combiner**, a **Brewing Planner**, and a **Book Library & Merge Planner** —
+bundled into one self-contained HTML file. No build step, no install, no
+server, no network calls, no dependencies: open `index.html` in a browser
+and it works.
 
-*Java Edition 1.21.x · zero dependencies · single ~114 KB HTML file · 20
-automated self-tests · works fully offline*
+*Java Edition 1.21.x · zero dependencies · single HTML file · 25 automated
+self-tests · works fully offline*
 
 Not an official Minecraft product. Not approved by or associated with
 Mojang or Microsoft.
@@ -18,6 +19,7 @@ Mojang or Microsoft.
 - [Features](#features)
   - [Anvil Combiner](#anvil-combiner)
   - [Brewing Planner](#brewing-planner)
+  - [Book Library & Merge Planner](#book-library--merge-planner)
 - [How the Numbers Work](#how-the-numbers-work)
 - [Scope and Non-Goals](#scope-and-non-goals)
 - [Architecture](#architecture)
@@ -30,16 +32,21 @@ Mojang or Microsoft.
 
 ## Overview
 
-Minecraft Calc is a pair of deterministic, offline "second screen" planning
-tools for players who want to work out the cheapest anvil combine order or
-a full brewing shopping list *before* spending XP levels or brewing-stand
-time in game. Both calculators live in a single HTML file with all logic,
-styling, and even icon assets embedded inline — there is nothing to
-install and nothing is ever sent over the network.
+Minecraft Calc is a set of deterministic, offline "second screen" planning
+tools for players who want to work out the cheapest anvil combine order, a
+full brewing shopping list, or which enchanted books to save for later
+*before* spending XP levels, brewing-stand time, or storage space in game.
+All three tools live in a single HTML file with all logic, styling, and
+even icon assets embedded inline — there is nothing to install and nothing
+is ever sent over the network.
 
-The two modules are switched with a tab bar at the top of the page and are
-otherwise unrelated: they share only a CSS theme and a handful of generic
-DOM helpers.
+The three modules are switched with a tab bar at the top of the page and
+are otherwise unrelated: they share only a CSS theme and a handful of
+generic DOM helpers. The Anvil Combiner and Brewing Planner are
+single-session calculators with no persistence; the Book Library is the
+one module that saves its data (to the browser's `localStorage`, still
+never leaving the device) so a book collection survives a page reload —
+see [Book Library & Merge Planner](#book-library--merge-planner).
 
 ## Quick Start
 
@@ -221,9 +228,80 @@ Brewing involves **no XP and no anvil interaction**; the base potion
 durations shown next to each effect are reference/flavor text only and are
 not recomputed per potency or extension level.
 
+### Book Library & Merge Planner
+
+A catalog for enchanted-book collections that grow past the point of
+hovering over every book in a chest to remember what's in it. Unlike the
+other two modules, entries here persist across reloads in the browser's
+`localStorage` — still 100% local, nothing is ever sent anywhere.
+
+**Book catalog**
+
+Each catalogued entry records:
+
+- One or more **enchantments and levels** (built the same way as the Anvil
+  Combiner's chip lists — add an enchantment, pick its level, repeat).
+- **Quantity** — for stacks of identical books.
+- **Storage location** — free text with suggestions (Chest, Barrel,
+  Shulker Box, Ender Chest, Inventory), so entries like "Chest A" or
+  "Shulker Box 3" both work.
+- **Notes** — free text.
+- **Status** — Available, Reserved, or Used, editable inline per entry
+  alongside quantity, location, and notes.
+
+**Merge Planner**
+
+Link two or more catalog entries into a named plan with a planned result
+(e.g. two Efficiency IV books → "Efficiency V", or a Sharpness IV book +
+a Looting III book → "Future Sword Upgrade"). Plans are reminders, not
+automatic crafting — nothing about the actual anvil combine is computed
+here; use the Anvil Combiner tab for that.
+
+**Reserved books**
+
+Linking a book into a plan automatically flips its status to Reserved so
+it doesn't get double-booked into a second plan or accidentally spent
+elsewhere; deleting the plan (or removing the book from it) automatically
+releases the book back to Available. A book reserved this way can't be
+manually switched back to Available while still linked — the status
+snaps back to Reserved on the next change, protecting the plan. A book
+marked Used by hand always wins over automatic reservation, and a book
+reserved by hand (outside of any plan) is left alone by the automatic
+logic.
+
+**Search & filtering**
+
+The catalog can be filtered, in any combination, by:
+
+- Enchantment and a minimum level
+- Compatible equipment (derived from the same enchantment/item
+  compatibility table the Anvil Combiner uses — e.g. filtering by
+  "Pickaxe" surfaces Efficiency, Fortune, Silk Touch, and Unbreaking
+  books)
+- Storage location
+- Reserved/Available/Used status
+- Free-text search across notes, location, and enchantment names
+
+**Upgrade projects**
+
+Define a goal (God Pickaxe, God Sword, Netherite Armor, Elytra, a
+villager-trading setup, or anything else) as a list of required
+enchantment/level/quantity combinations, and the project shows a
+completion percentage plus a per-requirement breakdown of how many
+matching books (available or reserved, i.e. not already spent) are on
+hand versus how many the project still needs.
+
+**Not implemented** — flagged in the feature request as future work and
+intentionally out of scope for this pass: automatic merge suggestions, XP
+cost estimation for planned merges, enchantment-conflict detection in the
+planner itself (the Anvil Combiner already does this for an actual
+combine job), wishlist tracking, duplicate detection, and import/export.
+
 ## How the Numbers Work
 
-A quick-reference table of the constants driving both engines:
+A quick-reference table of the constants driving the anvil and brewing
+engines (the Book Library has no fixed game constants — see
+[Book Library & Merge Planner](#book-library--merge-planner) above):
 
 | Constant | Value | Meaning |
 | --- | --- | --- |
@@ -255,8 +333,15 @@ A quick-reference table of the constants driving both engines:
 - Choosing a material tier never changes enchanting cost — the gear-stats
   engine and the anvil-cost engine are independent and only share plain
   item identifiers and enchantment maps, never each other's internals.
-- No save/export, accounts, or multiplayer/server integration — this is a
-  single-session, client-side planning tool with no persistence.
+- The Merge Planner is organizational only — it does not compute or
+  validate an actual anvil combine (use the Anvil Combiner tab for that),
+  and it does not estimate XP cost.
+- No accounts, multiplayer/server integration, or sync between devices —
+  the Book Library persists locally via `localStorage` on the one device
+  and browser it's used in; the Anvil Combiner and Brewing Planner remain
+  single-session with no persistence at all. No import/export yet either
+  (see [Book Library & Merge Planner](#book-library--merge-planner) above
+  for the full list of features left for later).
 - One fixed dark visual theme; there is no light-mode toggle.
 
 ## Architecture
@@ -266,7 +351,7 @@ CSS, JavaScript engines, UI code, and self-tests. `README.md` is the only
 other file in the repository — there is no build config, package
 manifest, or CI pipeline, by design.
 
-The JavaScript is organized into three independent, pure-function "engine"
+The JavaScript is organized into four independent, pure-function "engine"
 namespaces, each an IIFE that returns a frozen object of functions and
 constants:
 
@@ -278,15 +363,31 @@ constants:
   internals, so the two stay fully decoupled.
 - **`BrewEngine`** — the brewing-stand state machine (`applyIngredient`)
   and the batch/cycle planner (`planBatch`).
+- **`LibraryEngine`** — book-catalog filtering (`filterBooks`),
+  merge-plan/reservation bookkeeping (`applyReservations`), and
+  upgrade-project completion (`projectProgress`). Like `GearEngine`, it
+  takes enchantment ids/levels as plain data from the UI layer rather than
+  reaching into `AnvilEngine`'s internals — the UI (`bootLibrary()`) is
+  what looks up enchantment names, max levels, and compatible equipment
+  from `AnvilEngine.ENCH` when building on-screen labels and filters.
 
-Each engine is DOM-free by construction — none of the three ever
+Each engine is DOM-free by construction — none of the four ever
 references `document` or `window` — and `Object.freeze()`-d, so it only
 exposes its intended public surface. A separate `HAS_DOM` check, defined
-after all three engines, gates the DOM-touching UI layer instead. A small
+after all four engines, gates the DOM-touching UI layer instead. A small
 shared UI layer (`el()`, `$()`, `tile()`, `stateChip()`, and similar
-helpers) renders both modules' DOM purely from those engines' return
-values; a `bootTabs()` / `bootAnvil()` / `bootBrew()` sequence wires
-everything up on `DOMContentLoaded`.
+helpers) renders every module's DOM purely from those engines' return
+values; a `bootTabs()` / `bootAnvil()` / `bootBrew()` / `bootLibrary()`
+sequence wires everything up on `DOMContentLoaded`.
+
+`bootLibrary()` is the one boot function that talks to browser storage:
+it loads its catalog/plans/projects from a single `localStorage` key
+(`mc_calc_library_v1`) on boot and writes back to it after every mutation
+(`saveLibrary()`), wrapped in a `try`/`catch` so a full or unavailable
+store (private browsing, quota) degrades to a session-only in-memory
+catalog instead of throwing. This is the only place in the codebase that
+touches `localStorage` — the Anvil Combiner and Brewing Planner keep their
+state in an in-memory `S` object for the tab's lifetime only, as before.
 
 All vanilla item and block icons are embedded as base64 PNG data URIs in
 an `ICONS` table, and even the favicon is an inline SVG data URI — nothing
@@ -297,7 +398,7 @@ At the bottom of the script:
 
 ```js
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = {AnvilEngine, BrewEngine, GearEngine, run_self_tests};
+  module.exports = {AnvilEngine, BrewEngine, GearEngine, LibraryEngine, run_self_tests};
 ```
 
 This is what lets the engines run headlessly under Node for testing, with
@@ -305,17 +406,21 @@ no change to the browser code path.
 
 ## Testing
 
-`run_self_tests()` runs **20 assertions** across all three engines: 5
-anvil cases (T1–T5), 10 gear-stats cases (W1–W10), and 5 brewing cases
-(B1–B5) — covering things like the prior-work-penalty formula, the
-40-level cap, the optimizer beating a naive sequential combine order,
-correct stat folding vs. separate conditional lines, corruption-effect
-routing, the mutually-exclusive Potency/Extended validation error, and
-batch sizes that don't divide evenly into brew cycles.
+`run_self_tests()` runs **25 assertions** across all four engines: 5
+anvil cases (T1–T5), 10 gear-stats cases (W1–W10), 5 brewing cases
+(B1–B5), and 5 library cases (L1–L5) — covering things like the
+prior-work-penalty formula, the 40-level cap, the optimizer beating a
+naive sequential combine order, correct stat folding vs. separate
+conditional lines, corruption-effect routing, the mutually-exclusive
+Potency/Extended validation error, batch sizes that don't divide evenly
+into brew cycles, catalog filtering by enchantment/level and by
+compatible-equipment set, merge plans reserving and releasing books, a
+manual Used status overriding automatic reservation, and upgrade-project
+completion percentages.
 
 The suite runs automatically the moment the page loads: results are
 printed with `console.table()`, and the footer shows a live pass/fail
-badge (e.g. *"self-tests: 20/20 passing (see console.table)"*).
+badge (e.g. *"self-tests: 25/25 passing (see console.table)"*).
 
 It can also run headlessly with only Node.js — no browser, no
 dependencies:
@@ -342,9 +447,10 @@ badge (or the command above) still shows everything passing.
   `"tabpanel"`, `aria-selected`, `aria-controls`) with Left/Right/Home/End
   keyboard navigation and a roving `tabindex`.
 - Every dynamic output card is an `aria-live="polite"` region — the
-  combine-order and item-stats panels in the Anvil Combiner, plus the
-  brew-plan panel in the Brewing Planner — so recalculated output is
-  announced to assistive technology without manual refocus.
+  combine-order and item-stats panels in the Anvil Combiner, the brew-plan
+  panel in the Brewing Planner, and the catalog/projects panels in the
+  Book Library — so recalculated output is announced to assistive
+  technology without manual refocus.
 - Every interactive control has a visible `:focus-visible` outline, and
   `@media (prefers-reduced-motion: reduce)` disables transitions and
   animations.
@@ -352,7 +458,8 @@ badge (or the command above) still shows everything passing.
 - Requires JavaScript (a `<noscript>` message explains this if it's
   disabled); no Internet Explorer support and no polyfills are included.
 - Makes **zero outbound network requests** — no external fonts, scripts,
-  images, or analytics of any kind.
+  images, or analytics of any kind. The Book Library's `localStorage` use
+  is purely local browser storage, not a network call.
 
 ## Project Structure
 
@@ -372,9 +479,10 @@ minecraft_calc/
 - Add or update a `run_self_tests()` case for any new or changed
   mechanic, and confirm all tests still pass (see [Testing](#testing))
   before submitting changes.
-- `GearEngine` intentionally reads `AnvilEngine`'s item ids and
-  enchantment maps as plain data rather than importing its internals —
-  keep that separation when extending either engine.
+- `GearEngine` and `LibraryEngine` intentionally read `AnvilEngine`'s item
+  ids and enchantment maps as plain data (or leave that lookup to the UI
+  layer, in `LibraryEngine`'s case) rather than importing `AnvilEngine`'s
+  internals — keep that separation when extending any engine.
 - Keep the project dependency-free: no build tooling, no external
   requests, and no added libraries or frameworks.
 

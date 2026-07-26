@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<title>Minecraft Calc — Anvil Combiner &amp; Brewing Planner</title>
+<title>Minecraft Calc — Anvil Combiner, Brewing Planner &amp; Book Library</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%230e0f13"/><rect x="3" y="3" width="10" height="3" fill="%23a7b0c0"/><rect x="6" y="6" width="4" height="3" fill="%23808a9c"/><rect x="4" y="9" width="8" height="4" fill="%23a7b0c0"/><rect x="12" y="10" width="2" height="2" fill="%23b78aff"/></svg>'>
 <style>
 /* ================================================================
@@ -29,6 +29,7 @@
   --ok:          #7dd97a;
   --accent-anvil:#8fe14d;            /* experience green */
   --accent-brew: #b78aff;            /* potion violet — the brewing module's one added accent */
+  --accent-lib:  #f2c94c;            /* enchanted-book gold — the library module's one added accent */
   --accent:      var(--accent-anvil);
   --mono: ui-monospace,"Cascadia Code","JetBrains Mono","IBM Plex Mono","SF Mono",
           Menlo,Consolas,"Liberation Mono",monospace;
@@ -61,6 +62,7 @@ header.masthead{display:flex; flex-wrap:wrap; gap:22px; align-items:flex-end;
 }
 .brand h1 .hl{color:var(--accent-anvil)}
 .brand h1 .h2l{color:var(--accent-brew)}
+.brand h1 .h3l{color:var(--accent-lib)}
 .brand .sub{margin:6px 0 0; color:var(--dim); font-size:13px; letter-spacing:.04em}
 
 /* ---------- tabs (hotbar) ---------- */
@@ -83,11 +85,13 @@ header.masthead{display:flex; flex-wrap:wrap; gap:22px; align-items:flex-end;
 .tab:hover{color:var(--text)}
 #tab-brew{--tab-accent:var(--accent-brew)}
 #tab-anvil{--tab-accent:var(--accent-anvil)}
+#tab-lib{--tab-accent:var(--accent-lib)}
 
 /* ---------- module panels ---------- */
 section[role="tabpanel"]{outline:none}
 #panel-anvil{--accent:var(--accent-anvil)}
 #panel-brew {--accent:var(--accent-brew)}
+#panel-lib  {--accent:var(--accent-lib)}
 .module-grid{display:grid; grid-template-columns:minmax(320px,380px) 1fr; gap:22px; align-items:start}
 
 .card{
@@ -221,6 +225,26 @@ table.bom th{font-size:11px; letter-spacing:.1em; text-transform:uppercase; colo
 table.bom td.n{text-align:right; font-weight:700; color:var(--accent); white-space:nowrap}
 table.bom td .role{color:var(--faint); font-size:12px}
 
+/* ---------- book library: catalog/plan/project cards ---------- */
+ul.lib-list{list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:10px}
+.lib-card{background:var(--panel-2); border:2px solid var(--line-soft); padding:10px 12px}
+.lib-card .hd{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 12px}
+.lib-card .ttl{font-weight:800; font-size:14.5px; display:flex; align-items:center}
+.lib-card .sub{color:var(--faint); font-size:12px; margin:4px 0 0}
+.lib-card .fields{display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:10px}
+.lib-card .fields label{display:flex; flex-direction:column; gap:4px; font-size:11px;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--faint)}
+.lib-card .fields select,.lib-card .fields input{width:auto; min-width:120px; padding:6px 8px; font-size:13px}
+.lib-card .fields input[type=number]{min-width:70px}
+.badge{display:inline-block; padding:3px 8px 2px; font-size:11px; letter-spacing:.08em;
+  text-transform:uppercase; font-weight:700; border:2px solid; flex:none}
+.badge-available{color:var(--ok); border-color:var(--ok)}
+.badge-reserved{color:var(--accent-lib); border-color:var(--accent-lib)}
+.badge-used{color:var(--faint); border-color:var(--line)}
+.progress{height:10px; background:var(--slot); margin:10px 0 6px; overflow:hidden;
+  border:2px solid; border-color:var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark)}
+.progress > i{display:block; height:100%; background:var(--accent-lib)}
+
 /* hints / errors / warnings */
 .hints{margin:14px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px}
 .hints li{font-size:13px; color:var(--dim); padding:8px 10px; background:var(--panel-2);
@@ -253,7 +277,7 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
 
 <header class="masthead">
   <div class="brand">
-    <h1>Minecraft <span class="hl">Calc</span><br><span aria-hidden="true">▚</span> <span class="hl">Anvil</span> + <span class="h2l">Brewing</span></h1>
+    <h1>Minecraft <span class="hl">Calc</span><br><span aria-hidden="true">▚</span> <span class="hl">Anvil</span> + <span class="h2l">Brewing</span> + <span class="h3l">Library</span></h1>
     <p class="sub">Java Edition 1.21.x · deterministic planners · single file, no network</p>
   </div>
   <nav class="tabs" role="tablist" aria-label="Calculator modules">
@@ -261,6 +285,8 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
       <span class="dot" aria-hidden="true"></span>Anvil Combiner</button>
     <button class="tab" id="tab-brew" role="tab" aria-selected="false" aria-controls="panel-brew" tabindex="-1">
       <span class="dot" aria-hidden="true"></span>Brewing Planner</button>
+    <button class="tab" id="tab-lib" role="tab" aria-selected="false" aria-controls="panel-lib" tabindex="-1">
+      <span class="dot" aria-hidden="true"></span>Book Library</button>
   </nav>
 </header>
 
@@ -367,10 +393,100 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
     </div>
   </div>
 </section>
+
+<!-- ======================== BOOK LIBRARY ========================== -->
+<section id="panel-lib" role="tabpanel" aria-labelledby="tab-lib" data-module="lib" hidden>
+  <div class="module-grid">
+    <div>
+      <div class="card">
+        <h2>Add a book</h2>
+        <div class="row">
+          <label class="f"><span class="lab">Enchantment</span><select id="lib-add-ench"></select></label>
+          <label class="f" style="max-width:90px"><span class="lab">Level</span><select id="lib-add-lvl"></select></label>
+        </div>
+        <button class="btn" id="lib-add-ench-btn" type="button">Add enchantment</button>
+        <ul class="chips" id="lib-add-ench-list"></ul>
+        <div class="row" style="margin-top:12px">
+          <label class="f" style="max-width:110px"><span class="lab">Quantity</span>
+            <input id="lib-add-qty" type="number" min="1" max="999" step="1" value="1"></label>
+          <label class="f"><span class="lab">Storage location</span>
+            <input id="lib-add-loc" type="text" list="lib-loc-suggestions" placeholder="Chest A"></label>
+        </div>
+        <datalist id="lib-loc-suggestions">
+          <option value="Chest"><option value="Barrel"><option value="Shulker Box">
+          <option value="Ender Chest"><option value="Inventory">
+        </datalist>
+        <label class="f"><span class="lab">Status</span><select id="lib-add-status"></select></label>
+        <label class="f"><span class="lab">Notes</span>
+          <input id="lib-add-notes" type="text" placeholder="optional"></label>
+        <p class="msg-err" id="lib-add-msg" hidden></p>
+        <button class="btn" id="lib-add-book" type="button">Add book to catalog</button>
+      </div>
+      <div class="card">
+        <h2>Search &amp; filter</h2>
+        <label class="f"><span class="lab">Text search</span>
+          <input id="lib-f-text" type="text" placeholder="notes, location…"></label>
+        <div class="row">
+          <label class="f"><span class="lab">Enchantment</span><select id="lib-f-ench"></select></label>
+          <label class="f" style="max-width:100px"><span class="lab">Min level</span><select id="lib-f-lvl"></select></label>
+        </div>
+        <label class="f"><span class="lab">Compatible equipment</span><select id="lib-f-equip"></select></label>
+        <div class="row">
+          <label class="f"><span class="lab">Storage location</span><select id="lib-f-loc"></select></label>
+          <label class="f"><span class="lab">Status</span><select id="lib-f-status"></select></label>
+        </div>
+        <button class="btn" id="lib-f-clear" type="button">Clear filters</button>
+      </div>
+    </div>
+    <div>
+      <div class="card" aria-live="polite">
+        <h2>Book catalog</h2>
+        <div id="lib-catalog-out"></div>
+      </div>
+      <div class="card">
+        <h2>Merge planner</h2>
+        <p class="empty" style="margin:-6px 0 12px">Link two or more books into an upgrade plan — linked books are automatically marked Reserved so they aren't spent elsewhere.</p>
+        <label class="f"><span class="lab">Books to link (ctrl/cmd-click for multiple)</span>
+          <select id="lib-plan-books" multiple size="6"></select></label>
+        <label class="f"><span class="lab">Plan name</span>
+          <input id="lib-plan-name" type="text" placeholder="Sword upgrade"></label>
+        <label class="f"><span class="lab">Planned result</span>
+          <input id="lib-plan-result" type="text" placeholder="Sharpness V"></label>
+        <label class="f"><span class="lab">Notes</span>
+          <input id="lib-plan-notes" type="text" placeholder="optional"></label>
+        <p class="msg-err" id="lib-plan-msg" hidden></p>
+        <button class="btn" id="lib-plan-add" type="button">Create merge plan</button>
+        <ul class="lib-list" id="lib-plan-list"></ul>
+      </div>
+      <div class="card" aria-live="polite">
+        <h2>Upgrade projects</h2>
+        <label class="f"><span class="lab">Project name</span>
+          <input id="lib-proj-name" type="text" list="lib-proj-suggestions" placeholder="God Pickaxe"></label>
+        <datalist id="lib-proj-suggestions">
+          <option value="God Pickaxe"><option value="God Sword"><option value="Netherite Armor">
+          <option value="Elytra"><option value="Villager Trading Setup">
+        </datalist>
+        <div class="row">
+          <label class="f"><span class="lab">Requires enchantment</span><select id="lib-proj-ench"></select></label>
+          <label class="f" style="max-width:90px"><span class="lab">Level</span><select id="lib-proj-lvl"></select></label>
+          <label class="f" style="max-width:80px"><span class="lab">Qty</span>
+            <input id="lib-proj-qty" type="number" min="1" max="99" step="1" value="1"></label>
+        </div>
+        <button class="btn" id="lib-proj-req-add" type="button">Add requirement</button>
+        <ul class="chips" id="lib-proj-req-list"></ul>
+        <label class="f"><span class="lab">Notes</span>
+          <input id="lib-proj-notes" type="text" placeholder="optional"></label>
+        <p class="msg-err" id="lib-proj-msg" hidden></p>
+        <button class="btn" id="lib-proj-add" type="button">Create project</button>
+        <ul class="lib-list" id="lib-proj-list"></ul>
+      </div>
+    </div>
+  </div>
+</section>
 </main>
 
 <footer>
-  <span>Anvil: enchant-combining only (repairs &amp; renames out of scope) · Brewing: durations shown are display-only flavor.</span>
+  <span>Anvil: enchant-combining only (repairs &amp; renames out of scope) · Brewing: durations shown are display-only flavor · Library: saved locally in this browser only, nothing leaves your device.</span>
   <span id="test-badge">self-tests: pending…</span>
   <span style="flex-basis:100%">Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft. Item icons are Minecraft textures used for identification only.</span>
 </footer>
@@ -1094,8 +1210,126 @@ const BrewEngine = (() => {
 })();
 
 /* =====================================================================
- *  SELF-TESTS — §5: run ALL THREE suites, console.table all results.
- *  Anvil T1–T5, Gear W1–W10, brewing B1–B5 (§9).
+ *  LIBRARY ENGINE — independent pure-function namespace.
+ *  Catalogs enchanted books, links them into merge plans, and tracks
+ *  upgrade-project completion. Takes enchantment ids/levels as plain
+ *  strings/numbers supplied by the UI — like GearEngine, it never reaches
+ *  into AnvilEngine's internals, so the three engines stay decoupled;
+ *  the UI layer is what looks up enchantment names/levels/compatible
+ *  equipment from AnvilEngine.ENCH when it builds the on-screen labels.
+ * ===================================================================== */
+const LibraryEngine = (() => {
+  const STATUSES = ['available', 'reserved', 'used'];
+  const STATUS_LABEL = {available:'Available', reserved:'Reserved', used:'Used'};
+
+  let seq = 0;
+  const nextId = prefix => `${prefix}_${Date.now().toString(36)}_${(seq++).toString(36)}`;
+
+  function makeBook(data = {}){
+    return {
+      id: nextId('book'),
+      ench: {...(data.ench || {})},
+      qty: Math.max(1, data.qty || 1),
+      notes: data.notes || '',
+      location: data.location || '',
+      status: STATUSES.includes(data.status) ? data.status : 'available',
+      autoReserved: false,
+    };
+  }
+
+  function makePlan(data = {}){
+    return {
+      id: nextId('plan'),
+      name: data.name || '',
+      bookIds: [...(data.bookIds || [])],
+      resultLabel: data.resultLabel || '',
+      notes: data.notes || '',
+    };
+  }
+
+  function makeProject(data = {}){
+    return {
+      id: nextId('proj'),
+      name: data.name || '',
+      requirements: (data.requirements || []).map(r => ({
+        enchId: r.enchId, level: r.level, qty: Math.max(1, r.qty || 1),
+      })),
+      notes: data.notes || '',
+    };
+  }
+
+  /** Every book id referenced by at least one merge plan. */
+  const planBookIds = plans =>
+    new Set(plans.flatMap(p => p.bookIds));
+
+  /**
+   * Reconciles book status against current merge-plan membership.
+   * - A book manually marked 'used' is never overridden.
+   * - A book linked into any plan is (re)marked 'reserved' and flagged
+   *   autoReserved, so a plan can't be silently bypassed by re-marking
+   *   the book Available while it's still linked.
+   * - A book that was auto-reserved but is no longer linked to any plan
+   *   reverts to 'available'. A book the user reserved by hand (not via
+   *   a plan) is left alone.
+   */
+  function applyReservations(books, plans){
+    const reserved = planBookIds(plans);
+    return books.map(b => {
+      if (b.status === 'used') return b;
+      if (reserved.has(b.id)) return b.status === 'reserved' && b.autoReserved ? b : {...b, status:'reserved', autoReserved:true};
+      if (b.autoReserved) return {...b, status:'available', autoReserved:false};
+      return b;
+    });
+  }
+
+  function filterBooks(books, f = {}){
+    return books.filter(b => {
+      if (f.enchId && !(f.enchId in b.ench)) return false;
+      if (f.enchId && f.minLevel && (b.ench[f.enchId] || 0) < f.minLevel) return false;
+      if (f.equipmentEnchIds && !Object.keys(b.ench).some(id => f.equipmentEnchIds.includes(id))) return false;
+      if (f.location && b.location !== f.location) return false;
+      if (f.status && b.status !== f.status) return false;
+      if (f.text){
+        const q = f.text.toLowerCase();
+        const hay = [b.notes, b.location, ...Object.keys(b.ench)].join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  /** Sorted, de-duplicated list of every non-blank storage location in use. */
+  const effectiveLocations = books =>
+    [...new Set(books.map(b => b.location).filter(Boolean))].sort();
+
+  /**
+   * For each requirement {enchId, level, qty}, counts how many
+   * not-yet-used books (available or reserved) meet or exceed that
+   * enchantment/level, up to the quantity requested, and rolls the
+   * per-requirement counts into an overall percent/complete summary.
+   */
+  function projectProgress(project, books){
+    const requirements = project.requirements.map(r => {
+      const have = books
+        .filter(b => b.status !== 'used' && (b.ench[r.enchId] || 0) >= r.level)
+        .reduce((n, b) => n + b.qty, 0);
+      const met = Math.min(have, r.qty);
+      return {...r, have, met, done: have >= r.qty};
+    });
+    const totalQty = requirements.reduce((n, r) => n + r.qty, 0);
+    const metQty = requirements.reduce((n, r) => n + r.met, 0);
+    const pct = totalQty ? Math.round(metQty / totalQty * 100) : 0;
+    return {requirements, pct, complete: requirements.every(r => r.done)};
+  }
+
+  return Object.freeze({STATUSES, STATUS_LABEL,
+    makeBook, makePlan, makeProject, planBookIds, applyReservations,
+    filterBooks, effectiveLocations, projectProgress});
+})();
+
+/* =====================================================================
+ *  SELF-TESTS — §5: run ALL FOUR suites, console.table all results.
+ *  Anvil T1–T5, Gear W1–W10, brewing B1–B5, library L1–L5 (§9).
  * ===================================================================== */
 function run_self_tests(){
   const rows = [];
@@ -1104,7 +1338,7 @@ function run_self_tests(){
     rows.push({suite, id, name, pass: pass ? 'PASS' : 'FAIL',
       expected: JSON.stringify(expected), actual: JSON.stringify(actual)});
   };
-  const A = AnvilEngine, B = BrewEngine, G = GearEngine;
+  const A = AnvilEngine, B = BrewEngine, G = GearEngine, L = LibraryEngine;
 
   /* ---- anvil suite ---- */
   t('anvil', 'T1', 'prior-work penalty is 2^uses − 1',
@@ -1225,6 +1459,52 @@ function run_self_tests(){
      glowstone:b5.ok ? b5.bom.find(r => r.id === 'glowstone_dust').count : null,
      fuel:b5.ok ? b5.fuel : null, hints:b5.ok ? b5.hints.length : null},
     {ok:true, cycles:9, perGroup:[3,3,3], wart:3, blazeIngredient:3, glowstone:3, fuel:1, hints:3});
+
+  /* ---- library suite ---- */
+  const l1books = [
+    L.makeBook({ench:{efficiency:4}, qty:2, location:'Chest A'}),
+    L.makeBook({ench:{efficiency:3}, qty:1, location:'Chest B'}),
+    L.makeBook({ench:{mending:1}, qty:1, location:'Ender Chest'}),
+  ];
+  t('library', 'L1', 'filterBooks: enchantment + min level',
+    L.filterBooks(l1books, {enchId:'efficiency', minLevel:4}).length, 1);
+
+  const l2books = [
+    L.makeBook({ench:{sharpness:4}, qty:1, location:'Chest A'}),
+    L.makeBook({ench:{looting:3}, qty:1, location:'Chest A'}),
+  ];
+  const l2plan = L.makePlan({name:'Sword upgrade', bookIds:l2books.map(b => b.id), resultLabel:'Sharpness V'});
+  const l2reserved = L.applyReservations(l2books, [l2plan]);
+  const l2released = L.applyReservations(l2reserved, []);
+  t('library', 'L2', 'applyReservations: linking reserves books, unlinking releases them',
+    {reserved:l2reserved.map(b => b.status), released:l2released.map(b => b.status)},
+    {reserved:['reserved','reserved'], released:['available','available']});
+
+  const l3books = [L.makeBook({ench:{mending:1}, qty:1, location:'Chest A', status:'used'})];
+  const l3plan = L.makePlan({name:'x', bookIds:[l3books[0].id], resultLabel:'y'});
+  t('library', 'L3', 'applyReservations: manual Used status overrides plan reservation',
+    L.applyReservations(l3books, [l3plan])[0].status, 'used');
+
+  const l4books = [
+    L.makeBook({ench:{efficiency:5}, qty:1, location:'Chest A'}),
+    L.makeBook({ench:{unbreaking:3}, qty:1, location:'Chest A'}),
+  ];
+  const l4project = L.makeProject({name:'God Pickaxe', requirements:[
+    {enchId:'efficiency', level:5, qty:1},
+    {enchId:'unbreaking', level:3, qty:1},
+    {enchId:'mending', level:1, qty:1},
+  ]});
+  const l4 = L.projectProgress(l4project, l4books);
+  t('library', 'L4', 'projectProgress: 2/3 requirements met, project incomplete',
+    {metCount:l4.requirements.filter(r => r.done).length, complete:l4.complete},
+    {metCount:2, complete:false});
+
+  const l5books = [
+    L.makeBook({ench:{sharpness:5}, qty:1, location:'Chest A'}),
+    L.makeBook({ench:{power:5}, qty:1, location:'Chest A'}),
+  ];
+  t('library', 'L5', 'filterBooks: compatible-equipment enchantment set',
+    L.filterBooks(l5books, {equipmentEnchIds:['sharpness','smite','bane_of_arthropods']}).length, 1);
 
   console.table(rows);
   const failed = rows.filter(r => r.pass !== 'PASS');
@@ -1751,6 +2031,319 @@ function bootBrew(){
   syncToggles(); render();
 }
 
+/* --------------------------- BOOK LIBRARY UI --------------------------- */
+const LIB_LS_KEY = 'mc_calc_library_v1';
+
+function bootLibrary(){
+  const A = AnvilEngine, L = LibraryEngine;
+  const S = {books:[], plans:[], projects:[], pendingEnch:[], pendingReq:[]};
+
+  function loadLibrary(){
+    try {
+      const raw = localStorage.getItem(LIB_LS_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (Array.isArray(data.books)) S.books = data.books;
+      if (Array.isArray(data.plans)) S.plans = data.plans;
+      if (Array.isArray(data.projects)) S.projects = data.projects;
+    } catch (e){ /* corrupt or unavailable storage — start from an empty catalog */ }
+  }
+  function saveLibrary(){
+    try {
+      localStorage.setItem(LIB_LS_KEY, JSON.stringify({books:S.books, plans:S.plans, projects:S.projects}));
+    } catch (e){ /* storage unavailable (private browsing, quota) — session-only for this load */ }
+  }
+
+  const addEnchSel = $('#lib-add-ench'), addLvlSel = $('#lib-add-lvl'),
+        addQty = $('#lib-add-qty'), addLoc = $('#lib-add-loc'),
+        addStatus = $('#lib-add-status'), addNotes = $('#lib-add-notes'), addMsg = $('#lib-add-msg'),
+        fText = $('#lib-f-text'), fEnch = $('#lib-f-ench'), fLvl = $('#lib-f-lvl'),
+        fEquip = $('#lib-f-equip'), fLoc = $('#lib-f-loc'), fStatus = $('#lib-f-status'),
+        planBooksSel = $('#lib-plan-books'), planName = $('#lib-plan-name'),
+        planResult = $('#lib-plan-result'), planNotes = $('#lib-plan-notes'), planMsg = $('#lib-plan-msg'),
+        projName = $('#lib-proj-name'), projEnchSel = $('#lib-proj-ench'), projLvlSel = $('#lib-proj-lvl'),
+        projQty = $('#lib-proj-qty'), projNotes = $('#lib-proj-notes'), projMsg = $('#lib-proj-msg');
+
+  const bookLabel = ench => Object.entries(ench)
+    .map(([id, l]) => `${A.ENCH[id].name} ${ROMAN[l]}`).join(' + ') || 'No enchantments';
+
+  const enchIdsForEquipment = itemId =>
+    Object.keys(A.ENCH).filter(id => A.ENCH[id].on === 'any' || A.ENCH[id].on.includes(itemId));
+
+  function fillAllEnchSelect(sel, withAny){
+    sel.textContent = '';
+    if (withAny) sel.append(el('option', {value:'', text:'Any enchantment'}));
+    Object.entries(A.ENCH)
+      .sort((a, b) => a[1].name.localeCompare(b[1].name))
+      .forEach(([id, e]) => sel.append(el('option', {value:id, text:e.name})));
+  }
+  function fillLvlSelect(lvlSel, eid, withAny){
+    lvlSel.textContent = '';
+    if (withAny) lvlSel.append(el('option', {value:'0', text:'Any'}));
+    const max = eid && A.ENCH[eid] ? A.ENCH[eid].max : 5;
+    for (let l = 1; l <= max; l++) lvlSel.append(el('option', {value:String(l), text:ROMAN[l]}));
+  }
+  function fillEquipSelect(sel){
+    sel.textContent = '';
+    sel.append(el('option', {value:'', text:'Any equipment'}));
+    Object.entries(A.ITEMS).filter(([id]) => id !== 'book')
+      .forEach(([id, it]) => sel.append(el('option', {value:id, text:it.name})));
+  }
+  function fillStatusSelect(sel, withAny){
+    sel.textContent = '';
+    if (withAny) sel.append(el('option', {value:'', text:'Any status'}));
+    L.STATUSES.forEach(s => sel.append(el('option', {value:s, text:L.STATUS_LABEL[s]})));
+  }
+
+  function showMsg(node, text){
+    node.textContent = text; node.hidden = false;
+  }
+  function clearMsg(node){ node.hidden = true; node.textContent = ''; }
+
+  function renderPendingEnch(){
+    const ul = $('#lib-add-ench-list');
+    ul.textContent = '';
+    S.pendingEnch.forEach((e, i) => ul.append(el('li', {},
+      el('span', {}, iconImg(ICONS.book), `${A.ENCH[e.id].name} ${ROMAN[e.lvl]}`),
+      el('button', {class:'mini', type:'button', 'aria-label':`Remove ${A.ENCH[e.id].name}`,
+        onclick:() => { S.pendingEnch.splice(i, 1); renderPendingEnch(); }}, '✕'))));
+  }
+  function renderPendingReq(){
+    const ul = $('#lib-proj-req-list');
+    ul.textContent = '';
+    S.pendingReq.forEach((r, i) => ul.append(el('li', {},
+      el('span', {}, `${A.ENCH[r.enchId].name} ${ROMAN[r.level]} ×${r.qty}`),
+      el('button', {class:'mini', type:'button', 'aria-label':`Remove requirement`,
+        onclick:() => { S.pendingReq.splice(i, 1); renderPendingReq(); }}, '✕'))));
+  }
+
+  function currentFilters(){
+    const enchId = fEnch.value, minLevel = parseInt(fLvl.value, 10) || 0, equip = fEquip.value;
+    return {
+      enchId: enchId || undefined,
+      minLevel: enchId && minLevel ? minLevel : undefined,
+      equipmentEnchIds: equip ? enchIdsForEquipment(equip) : undefined,
+      location: fLoc.value || undefined,
+      status: fStatus.value || undefined,
+      text: fText.value.trim() || undefined,
+    };
+  }
+
+  function renderLocationOptions(){
+    const prev = fLoc.value;
+    fLoc.textContent = '';
+    fLoc.append(el('option', {value:'', text:'Any location'}));
+    L.effectiveLocations(S.books).forEach(loc => fLoc.append(el('option', {value:loc, text:loc})));
+    fLoc.value = [...fLoc.options].some(o => o.value === prev) ? prev : '';
+  }
+
+  function bookRow(b){
+    const statusSel = el('select', {'aria-label':'Status'});
+    L.STATUSES.forEach(s => statusSel.append(el('option', {value:s, text:L.STATUS_LABEL[s]})));
+    statusSel.value = b.status;
+    statusSel.addEventListener('change', () => {
+      b.status = statusSel.value; b.autoReserved = false; syncAndRender();
+    });
+    const qtyInput = el('input', {type:'number', min:'1', max:'999', step:'1', value:String(b.qty), 'aria-label':'Quantity'});
+    qtyInput.addEventListener('change', () => {
+      b.qty = Math.max(1, parseInt(qtyInput.value, 10) || 1); syncAndRender();
+    });
+    const locInput = el('input', {type:'text', value:b.location, list:'lib-loc-suggestions', 'aria-label':'Storage location'});
+    locInput.addEventListener('change', () => { b.location = locInput.value.trim(); syncAndRender(); });
+    const notesInput = el('input', {type:'text', value:b.notes, 'aria-label':'Notes'});
+    notesInput.addEventListener('change', () => { b.notes = notesInput.value; syncAndRender(); });
+    const delBtn = el('button', {class:'mini', type:'button', 'aria-label':'Delete book',
+      onclick:() => {
+        S.books = S.books.filter(x => x.id !== b.id);
+        S.plans.forEach(p => { p.bookIds = p.bookIds.filter(id => id !== b.id); });
+        S.plans = S.plans.filter(p => p.bookIds.length >= 2);
+        syncAndRender();
+      }}, '✕');
+    return el('li', {class:'lib-card'},
+      el('div', {class:'hd'},
+        el('span', {class:'ttl'}, iconImg(ICONS.book), bookLabel(b.ench)),
+        el('span', {class:`badge badge-${b.status}`, text:L.STATUS_LABEL[b.status]})),
+      el('div', {class:'fields'},
+        el('label', {}, 'Qty', qtyInput),
+        el('label', {}, 'Location', locInput),
+        el('label', {}, 'Status', statusSel),
+        el('label', {}, 'Notes', notesInput),
+        el('label', {}, ' ', delBtn)));
+  }
+
+  function renderCatalog(){
+    const out = $('#lib-catalog-out');
+    out.textContent = '';
+    out.append(el('div', {class:'tiles'},
+      tile(String(S.books.length), 'catalog entries'),
+      tile(String(S.books.reduce((n, b) => n + b.qty, 0)), 'total books'),
+      tile(String(S.books.filter(b => b.status === 'reserved').length), 'reserved entries'),
+      tile(String(S.books.filter(b => b.status === 'used').length), 'used entries')));
+    if (!S.books.length){
+      out.append(el('p', {class:'empty', text:'No books catalogued yet — add one on the left.'}));
+      return;
+    }
+    const filtered = L.filterBooks(S.books, currentFilters());
+    if (!filtered.length){
+      out.append(el('p', {class:'empty', text:'No books match the current filters.'}));
+      return;
+    }
+    const ul = el('ul', {class:'lib-list'});
+    filtered.forEach(b => ul.append(bookRow(b)));
+    out.append(ul);
+  }
+
+  function renderPlanBooksSelect(){
+    const prevSelected = new Set([...planBooksSel.selectedOptions].map(o => o.value));
+    planBooksSel.textContent = '';
+    const eligible = S.books.filter(b => b.status !== 'used');
+    if (!eligible.length){
+      planBooksSel.append(el('option', {value:'', disabled:'', text:'No available books — add some to the catalog first'}));
+      return;
+    }
+    eligible.forEach(b => {
+      const opt = el('option', {value:b.id,
+        text:`${bookLabel(b.ench)} ×${b.qty} — ${b.location || 'no location'} (${L.STATUS_LABEL[b.status]})`});
+      if (prevSelected.has(b.id)) opt.selected = true;
+      planBooksSel.append(opt);
+    });
+  }
+
+  function renderPlans(){
+    const ul = $('#lib-plan-list');
+    ul.textContent = '';
+    if (!S.plans.length){ ul.append(el('li', {class:'empty', text:'No merge plans yet.'})); return; }
+    S.plans.forEach(p => {
+      const books = p.bookIds.map(id => S.books.find(b => b.id === id)).filter(Boolean);
+      const chips = el('ul', {class:'chips'});
+      books.forEach(b => chips.append(el('li', {}, el('span', {}, `${bookLabel(b.ench)} ×${b.qty}`),
+        el('span', {class:`badge badge-${b.status}`, text:L.STATUS_LABEL[b.status]}))));
+      const card = el('li', {class:'lib-card'},
+        el('div', {class:'hd'},
+          el('span', {class:'ttl', text:(p.name || 'Untitled plan') + (p.resultLabel ? ` → ${p.resultLabel}` : '')}),
+          el('button', {class:'mini', type:'button', 'aria-label':'Delete plan',
+            onclick:() => { S.plans = S.plans.filter(x => x.id !== p.id); syncAndRender(); }}, '✕')),
+        chips);
+      if (p.notes) card.append(el('p', {class:'sub', text:p.notes}));
+      ul.append(card);
+    });
+  }
+
+  function renderProjects(){
+    const ul = $('#lib-proj-list');
+    ul.textContent = '';
+    if (!S.projects.length){ ul.append(el('li', {class:'empty', text:'No upgrade projects yet.'})); return; }
+    S.projects.forEach(p => {
+      const prog = L.projectProgress(p, S.books);
+      const reqList = el('ul', {class:'hints'});
+      prog.requirements.forEach(r => reqList.append(el('li', {},
+        el('b', {text:r.done ? '✓' : '…'}),
+        ` ${A.ENCH[r.enchId].name} ${ROMAN[r.level]} — ${r.have}/${r.qty} on hand`)));
+      const card = el('li', {class:'lib-card'},
+        el('div', {class:'hd'},
+          el('span', {class:'ttl', text:p.name || 'Untitled project'}),
+          el('span', {class:'sub', text:`${prog.pct}% complete${prog.complete ? ' — ready!' : ''}`}),
+          el('button', {class:'mini', type:'button', 'aria-label':'Delete project',
+            onclick:() => { S.projects = S.projects.filter(x => x.id !== p.id); syncAndRender(); }}, '✕')),
+        el('div', {class:'progress'}, el('i', {style:`width:${prog.pct}%`})),
+        reqList);
+      if (p.notes) card.append(el('p', {class:'sub', text:p.notes}));
+      ul.append(card);
+    });
+  }
+
+  function render(){
+    renderLocationOptions();
+    renderCatalog();
+    renderPlanBooksSelect();
+    renderPlans();
+    renderProjects();
+  }
+  function syncAndRender(){
+    S.books = L.applyReservations(S.books, S.plans);
+    saveLibrary();
+    render();
+  }
+
+  /* ---- static select population ---- */
+  fillAllEnchSelect(addEnchSel, false); fillLvlSelect(addLvlSel, addEnchSel.value, false);
+  fillAllEnchSelect(projEnchSel, false); fillLvlSelect(projLvlSel, projEnchSel.value, false);
+  fillAllEnchSelect(fEnch, true); fillLvlSelect(fLvl, fEnch.value || null, true);
+  fillEquipSelect(fEquip);
+  fillStatusSelect(fStatus, true);
+  fillStatusSelect(addStatus, false);
+
+  /* ---- events: add-a-book ---- */
+  addEnchSel.addEventListener('change', () => fillLvlSelect(addLvlSel, addEnchSel.value, false));
+  $('#lib-add-ench-btn').addEventListener('click', () => {
+    const id = addEnchSel.value, lvl = parseInt(addLvlSel.value, 10);
+    const existing = S.pendingEnch.find(e => e.id === id);
+    if (existing) existing.lvl = lvl; else S.pendingEnch.push({id, lvl});
+    clearMsg(addMsg); renderPendingEnch();
+  });
+  $('#lib-add-book').addEventListener('click', () => {
+    if (!S.pendingEnch.length){ showMsg(addMsg, 'Add at least one enchantment first.'); return; }
+    const ench = Object.fromEntries(S.pendingEnch.map(e => [e.id, e.lvl]));
+    S.books.push(L.makeBook({
+      ench, qty:parseInt(addQty.value, 10) || 1, location:addLoc.value.trim(),
+      status:addStatus.value, notes:addNotes.value.trim(),
+    }));
+    S.pendingEnch = [];
+    addQty.value = '1'; addLoc.value = ''; addNotes.value = ''; addStatus.value = 'available';
+    clearMsg(addMsg); renderPendingEnch(); syncAndRender();
+  });
+
+  /* ---- events: search & filter ---- */
+  fText.addEventListener('input', renderCatalog);
+  fLvl.addEventListener('change', renderCatalog);
+  fEquip.addEventListener('change', renderCatalog);
+  fLoc.addEventListener('change', renderCatalog);
+  fStatus.addEventListener('change', renderCatalog);
+  fEnch.addEventListener('change', () => {
+    fillLvlSelect(fLvl, fEnch.value || null, true); renderCatalog();
+  });
+  $('#lib-f-clear').addEventListener('click', () => {
+    fText.value = ''; fEnch.value = ''; fillLvlSelect(fLvl, null, true);
+    fEquip.value = ''; fLoc.value = ''; fStatus.value = '';
+    renderCatalog();
+  });
+
+  /* ---- events: merge planner ---- */
+  $('#lib-plan-add').addEventListener('click', () => {
+    const ids = [...planBooksSel.selectedOptions].map(o => o.value).filter(Boolean);
+    if (ids.length < 2){ showMsg(planMsg, 'Select at least 2 books to link into a plan.'); return; }
+    S.plans.push(L.makePlan({
+      name:planName.value.trim(), bookIds:ids,
+      resultLabel:planResult.value.trim(), notes:planNotes.value.trim(),
+    }));
+    planName.value = ''; planResult.value = ''; planNotes.value = '';
+    clearMsg(planMsg); syncAndRender();
+  });
+
+  /* ---- events: upgrade projects ---- */
+  projEnchSel.addEventListener('change', () => fillLvlSelect(projLvlSel, projEnchSel.value, false));
+  $('#lib-proj-req-add').addEventListener('click', () => {
+    const enchId = projEnchSel.value, level = parseInt(projLvlSel.value, 10),
+          qty = Math.max(1, parseInt(projQty.value, 10) || 1);
+    const existing = S.pendingReq.find(r => r.enchId === enchId && r.level === level);
+    if (existing) existing.qty += qty; else S.pendingReq.push({enchId, level, qty});
+    clearMsg(projMsg); renderPendingReq();
+  });
+  $('#lib-proj-add').addEventListener('click', () => {
+    if (!S.pendingReq.length){ showMsg(projMsg, 'Add at least one required enchantment first.'); return; }
+    S.projects.push(L.makeProject({
+      name:projName.value.trim() || 'Untitled project', requirements:S.pendingReq, notes:projNotes.value.trim(),
+    }));
+    S.pendingReq = [];
+    projName.value = ''; projNotes.value = '';
+    clearMsg(projMsg); renderPendingReq(); syncAndRender();
+  });
+
+  loadLibrary();
+  S.books = L.applyReservations(S.books, S.plans);
+  renderPendingEnch(); renderPendingReq(); render();
+}
+
 /* ------------------------------- TABS -------------------------------- */
 function bootTabs(){
   const tabs = [...document.querySelectorAll('[role=tab]')];
@@ -1780,7 +2373,7 @@ function bootTabs(){
 /* ------------------------------- BOOT -------------------------------- */
 if (HAS_DOM){
   const boot = () => {
-    bootTabs(); bootAnvil(); bootBrew();
+    bootTabs(); bootAnvil(); bootBrew(); bootLibrary();
     const rows = run_self_tests();
     const failed = rows.filter(r => r.pass !== 'PASS').length;
     const badge = document.getElementById('test-badge');
@@ -1796,7 +2389,7 @@ if (HAS_DOM){
 
 /* Node/test harness export — engines are DOM-free by construction. */
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = {AnvilEngine, BrewEngine, GearEngine, run_self_tests};
+  module.exports = {AnvilEngine, BrewEngine, GearEngine, LibraryEngine, run_self_tests};
 </script>
 </body>
 </html>
