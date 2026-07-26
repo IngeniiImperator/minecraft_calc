@@ -5,7 +5,7 @@ Combiner** and a **Brewing Planner** — bundled into one self-contained HTML
 file. No build step, no install, no server, no network calls, no
 dependencies: open `index.html` in a browser and it works.
 
-*Java Edition 1.21.x · zero dependencies · single ~114 KB HTML file · 18
+*Java Edition 1.21.x · zero dependencies · single ~114 KB HTML file · 20
 automated self-tests · works fully offline*
 
 Not an official Minecraft product. Not approved by or associated with
@@ -305,8 +305,8 @@ no change to the browser code path.
 
 ## Testing
 
-`run_self_tests()` runs **18 assertions** across all three engines: 5
-anvil cases (T1–T5), 8 gear-stats cases (W1–W8), and 5 brewing cases
+`run_self_tests()` runs **20 assertions** across all three engines: 5
+anvil cases (T1–T5), 10 gear-stats cases (W1–W10), and 5 brewing cases
 (B1–B5) — covering things like the prior-work-penalty formula, the
 40-level cap, the optimizer beating a naive sequential combine order,
 correct stat folding vs. separate conditional lines, corruption-effect
@@ -315,7 +315,7 @@ batch sizes that don't divide evenly into brew cycles.
 
 The suite runs automatically the moment the page loads: results are
 printed with `console.table()`, and the footer shows a live pass/fail
-badge (e.g. *"self-tests: 18/18 passing (see console.table)"*).
+badge (e.g. *"self-tests: 20/20 passing (see console.table)"*).
 
 It can also run headlessly with only Node.js — no browser, no
 dependencies:
