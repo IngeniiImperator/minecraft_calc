@@ -663,7 +663,7 @@ const GearEngine = (() => {
       note:'Ranged weapon — damage depends on the loaded projectile. No fixed melee number is modeled.'},
     trident:     {durability:250, damage:9, speed:1.1,
       note:'Also usable as a ranged throw; the melee stat is shown here.'},
-    fishing_rod: {durability:65,  damage:null, speed:null, note:'Not a weapon.'},
+    fishing_rod: {durability:64,  damage:null, speed:null, note:'Not a weapon.'},
     shears:      {durability:238, damage:null, speed:null, note:'Not a weapon.'},
     shield:      {durability:336, damage:null, speed:null,
       note:'Blocking item — its damage-blocking behavior isn’t modeled as a stat here.'},
@@ -710,9 +710,11 @@ const GearEngine = (() => {
    * the value gets folded into ('damage'/'durability'), or null when the
    * effect is conditional/runtime-dependent and shown as a labeled line
    * only (e.g. smite is undead-only, so it can't safely generalize into
-   * the Damage tile).
+   * the Damage tile). `itemId` is needed because Unbreaking's real
+   * formula differs between tools/weapons and armor (see below) — it's
+   * not otherwise used to gate which enchantments apply here.
    */
-  function enchantModifiers(enchMap){
+  function enchantModifiers(itemId, enchMap){
     const mods = [];
     const lvl = id => enchMap[id] || 0;
     const push = (id, label, fold, value, text) => mods.push({id, label, fold, value, text});
@@ -741,7 +743,7 @@ const GearEngine = (() => {
       ['protection', 'Protection', 4, null],
       ['fire_protection', 'Fire Protection', 8, 'fire/lava damage only'],
       ['blast_protection', 'Blast Protection', 8, 'explosion damage only'],
-      ['projectile_protection', 'Projectile Protection', 6, 'projectile damage only'],
+      ['projectile_protection', 'Projectile Protection', 8, 'projectile damage only'],
     ]) if (lvl(eid)){
       const v = pct * lvl(eid);
       push(eid, `${name} ${RN[lvl(eid)]}`, null, v,
@@ -753,12 +755,18 @@ const GearEngine = (() => {
         `${v}% fall-damage-only reduction — separate from the Protection family.`);
     }
     if (lvl('unbreaking')){
-      const v = lvl('unbreaking') + 1;
-      push('unbreaking', `Unbreaking ${RN[lvl('unbreaking')]}`, 'durability', v,
-        `×${v} effective durability (expected uses before breaking), folded into Durability above.`);
+      const n = lvl('unbreaking');
+      // Armor uses a real, separately-defined and much weaker curve than
+      // tools/weapons — durability-consume chance = 0.6 + 0.4/(level+1),
+      // vs. tools' simple 1/(level+1). Not the same formula; don't unify.
+      const v = isTieredArmor(itemId) ? 1 / (0.6 + 0.4 / (n + 1)) : n + 1;
+      push('unbreaking', `Unbreaking ${RN[n]}`, 'durability', v,
+        isTieredArmor(itemId)
+          ? `×${(Math.round(v * 100) / 100).toFixed(2)} effective durability — armor uses a weaker Unbreaking curve than tools, folded into Durability above.`
+          : `×${v} effective durability (expected uses before breaking), folded into Durability above.`);
     }
     if (lvl('power')){
-      const mult = 1 + 0.5 * lvl('power') + 0.5;
+      const mult = 1 + 0.25 * lvl('power') + 0.25;
       push('power', `Power ${RN[lvl('power')]}`, null, mult,
         `×${mult.toFixed(2)} arrow damage — a bow has no melee base stat to fold this into.`);
     }
@@ -787,7 +795,7 @@ const GearEngine = (() => {
   function resultingStats(itemId, materialId, enchMap){
     const base = baseStats(itemId, materialId);
     if (!base) return null;
-    const mods = enchantModifiers(enchMap || {});
+    const mods = enchantModifiers(itemId, enchMap || {});
     let finalDamage = base.damage, finalDurability = base.durability;
     for (const m of mods){
       if (m.fold === 'damage' && finalDamage != null) finalDamage += m.value;
@@ -1087,7 +1095,7 @@ const BrewEngine = (() => {
 
 /* =====================================================================
  *  SELF-TESTS — §5: run ALL THREE suites, console.table all results.
- *  Anvil T1–T5, Gear W1–W8, brewing B1–B5 (§9).
+ *  Anvil T1–T5, Gear W1–W10, brewing B1–B5 (§9).
  * ===================================================================== */
 function run_self_tests(){
   const rows = [];
@@ -1167,6 +1175,17 @@ function run_self_tests(){
   t('gear', 'W8', 'Mace + Density III → base damage untouched, rate-only modifier (no fall distance input)',
     {baseDamage:w8.base.damage, densityRatePerBlock:w8density.value, finalDamage:w8.finalDamage},
     {baseDamage:6, densityRatePerBlock:1.5, finalDamage:6});
+
+  const w9 = G.resultingStats('boots', 'diamond', {unbreaking:3});
+  t('gear', 'W9', 'Diamond Boots + Unbreaking III → armor uses a weaker curve than tools: ×1.43, not ×4',
+    {baseDurability:w9.base.durability, finalDurability:w9.finalDurability},
+    {baseDurability:429, finalDurability:613});
+
+  const w10 = G.resultingStats('bow', null, {power:5});
+  const w10power = w10.mods.find(m => m.id === 'power');
+  t('gear', 'W10', 'Bow + Power V → ×2.5 arrow damage (not ×4.0); durability untouched by a non-tool enchantment path',
+    {baseDurability:w10.base.durability, finalDurability:w10.finalDurability, powerMultiplier:w10power.value},
+    {baseDurability:384, finalDurability:384, powerMultiplier:2.5});
 
   /* ---- brewing suite ---- */
   const b1 = B.planBatch([{effect:'strength', potency2:true, extended:false, form:'splash', qty:1}], 1);
