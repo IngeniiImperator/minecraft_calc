@@ -197,6 +197,17 @@ ol.steps{list-style:none; margin:0; padding:0; display:flex; flex-direction:colu
   padding:5px 9px 4px; border:2px solid var(--bevel-dark);
 }
 .arr{color:var(--faint)}
+img.icon{
+  width:18px; height:18px; margin-right:5px; vertical-align:-4px;
+  image-rendering:pixelated; image-rendering:crisp-edges;
+}
+.ing img.icon{filter:drop-shadow(0 1px 0 rgba(0,0,0,.4))}
+img.icon-preview{
+  width:34px; height:34px; padding:4px; flex:none;
+  background:var(--slot); border:2px solid;
+  border-color:var(--bevel-dark) var(--bevel-light) var(--bevel-light) var(--bevel-dark);
+  image-rendering:pixelated; image-rendering:crisp-edges;
+}
 .step .note{grid-column:2; font-size:12px; color:var(--dim)}
 .step .note.alt{color:var(--accent)}
 .craft{border-left:4px solid var(--accent)}
@@ -260,7 +271,10 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
       <div class="card">
         <h2>Build the job</h2>
         <label class="f"><span class="lab">Target item</span>
-          <select id="an-item"></select>
+          <div class="row" style="align-items:center; gap:8px">
+            <select id="an-item"></select>
+            <img id="an-item-icon" class="icon-preview" alt="">
+          </div>
         </label>
         <label class="f"><span class="lab">Prior anvil uses on the item (work penalty)</span>
           <input id="an-uses" type="number" min="0" max="8" step="1" value="0">
@@ -297,7 +311,10 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
       <div class="card">
         <h2>Target builder</h2>
         <label class="f"><span class="lab">Effect</span>
-          <select id="br-effect"></select>
+          <div class="row" style="align-items:center; gap:8px">
+            <select id="br-effect"></select>
+            <img id="br-effect-icon" class="icon-preview" alt="">
+          </div>
         </label>
         <p class="empty" id="br-duration" style="margin:-6px 0 12px"></p>
         <label class="toggle" id="br-pot-wrap">
@@ -346,6 +363,7 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
 <footer>
   <span>Anvil: enchant-combining only (repairs &amp; renames out of scope) · Brewing: durations shown are display-only flavor.</span>
   <span id="test-badge">self-tests: pending…</span>
+  <span style="flex-basis:100%">Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft. Item icons are Minecraft textures used for identification only.</span>
 </footer>
 </div>
 
@@ -925,6 +943,60 @@ function run_self_tests(){
  * ===================================================================== */
 const HAS_DOM = typeof document !== 'undefined';
 
+/* Vanilla item/block textures, embedded as data URIs so the file stays a
+   single dependency-free artifact. Sourced from misode/mcmeta (mirrors
+   Mojang's own generated assets); used here for item identification only.
+   Not an official Minecraft product — not approved by or associated with
+   Mojang or Microsoft. */
+const ICONS = {
+  arrow: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAWElEQVR42mMYemDatGn/QcDFxeU/yRpv3LgBxkA26QaANHSmq4MMgGgmFYA0a8hxw20nSzOITb5mKBjumh88ePD/2LFjlGkG0fb29qQbANSEoZksQ+ieuQAKQ1gwvwu6gQAAAABJRU5ErkJggg==",
+  axe: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAIVBMVEUAAAAz68srx6wnspqJZyceindoTh5JNhUOPzYoHgsIJSBnmo+OAAAAAXRSTlMAQObYZgAAAD9JREFUeNpjQAEcDVBGowRUQFgDKmBsngBmLFQOngBmcC03tYLIlU2GMNg9uRZABIAqwAKZUONKcAkwzGRABQB0ogw79ps+WQAAAABJRU5ErkJggg==",
+  blaze_powder: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAATlBMVEUAAACVMwD/owD//7X//jHKjAn/4AD/ywDNVgD7jAD/2EL4owDKdgD/2UL7vzHqigD/6k3/30bIYQDSgAPnhQCoSQCoTwDNZQCrPgD//24XhfpfAAAAAXRSTlMAQObYZgAAAGZJREFUeNoFwYmBgkAAALHMroD3nx9i/42aAAAABABoBgARBOgUaAQIIUBoFED30JgBmqlXSwL9/PZqW9bZHjS+lnUuc5zGLdDcPtfz9j0u1yPQR+ft+f+3PwKk5/HYjwBQFQAAeAPPZwJwf+Cq8QAAAABJRU5ErkJggg==",
+  book: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAPFBMVEUAAADW1ta3t7fTohbUlhqZmZlbW1ukLCtlSxfFEzmdGzeJISBUPhNSLhBEMxBsFxdEJQphFBQxIQQWEAV8/BcXAAAAAXRSTlMAQObYZgAAAG1JREFUeNp1z0EWgyAMBNA0NA0WwTG5/101Ik9dOLv5ZBbQa8zsWWvOlyxLzREbr6pTbi3kPJ7/0yUx7hIAOy5aiO4Vv5jwIZoShIXI64djhfRlFsMpgGgRgzt1EeZSeh2CskYdAvhKt7j76683mGkGwVjE2/sAAAAASUVORK5CYII=",
+  boots: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGFBMVEUAAAAIJSAOPzZK7dkgxbWh++gaqqf///+Sb4flAAAAAXRSTlMAQObYZgAAAEVJREFUGFediEESwCAIA00E+/8flyDW8VhzgN1t7W4k65Q/jnVn8AzedxCy75B4BDtCUAbLN30ojCq08ABAoACpho/+7QV5hQDq80bh+AAAAABJRU5ErkJggg==",
+  bow: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAZ0lEQVR42mOgK/A0E/2PjEnW1Jmu/j/DTw6EwWwNOW7chqBoQmiAYcKas7OzQRqxanBxcSGsedq0aWAaJk5jzQgDQM4mWzMsoPBoJmw72AACmgm7gL6aMZ2P0EyWAeiaSfcCuYBczQDVGni1FlvOEgAAAABJRU5ErkJggg==",
+  breeze_rod: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAWElEQVR42mOgOwjPmfvfLq79P9maty499b+q6ch//aD6/yRr3r/+JEgzyAXkaZ7aexmsmVxnU6yZ/n6Ghzb9o4r+moGBRE5oI0BO2WpEIiEHAJ0M0TwQAABFm4JBm0Q9dgAAAABJRU5ErkJggg==",
+  chestplate: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAGFBMVEUAAAD///+h++hK7dkgxbUaqqcOPzYIJSASzXVWAAAAAXRSTlMAQObYZgAAAFNJREFUeNqNz0EOgEAIBEGkB/j/j806JmuMB/vE1I34Ua+eRx+J4T46QR3RSgxAqluAocSRmYBqwUx5Qs3Earxhwg0GbeAF8t5QuiqDZW/L1fevJzKqAlDbFhetAAAAAElFTkSuQmCC",
+  cobweb: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQAgMAAABinRfyAAAADFBMVEUAAAD////k6enEztJgv/InAAAAAXRSTlMAQObYZgAAAFhJREFUeNpjOMDgwMwgwJfDwsBd4CjAwMR4oIGB2V1JgIFHkYODgeOYEA/Dy6kNzgwGTlHPGXgsDZwYWBRZPBiYhEx5GJj7DmxgYJHgSwAasIGF4QALAzMASrAO2/4NVFoAAAAASUVORK5CYII=",
+  crossbow: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAKlBMVEUAAABNLhFtQhgqGgmQWB87JA21cy9IKxCXl5dtbW2WlpY2IAtEREQfEgbgySe3AAAAAXRSTlMAQObYZgAAAGhJREFUeNoFwYEBgjAQBLDct6hAb/91TQBAACDJmgC/W/aemQT8OJ/rupYD3PK5igNw9pXUDZB9JZMHwHybyZMCspfmyaRA9uLJZFKQ4dZM5gVrO2gmU2RyQN/JW6wF0DdTANBpAYDWHyfQAnPEy7OdAAAAAElFTkSuQmCC",
+  dragon_breath: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAKlBMVEUAAAD26u7U5ffu0uazz+zMr6XencXNdaTUbUldj8LFSIOpRyWsLHuXNxZfoybVAAAAAXRSTlMAQObYZgAAAEpJREFUeNpjwAo4uqEM1VAHCMN7L5TBspIByjgJZeicmQCmmUpqIHLqXmnmE8AMN2NjMMM92RDCmGYsKAZmcCYKZkK0z5w5AclmALhAD/gCXSQKAAAAAElFTkSuQmCC",
+  elytra: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAG1BMVEUAAACPj7OMjIx/f5hzc3Nwbo1paWlLS0s1NTXBGAVdAAAAAXRSTlMAQObYZgAAAFpJREFUeNqNT0kOwEAIgtEO/P/DNrWxvQ4XFtFEnEGSLemzGZIUKbXPIA2IjBQWUEU0WMUOwPX4RRSwWrxBDxKYDUwjwAmyWftKA85ruxvE3Bh4+6dWHj569AbZrwlib1Ty2AAAAABJRU5ErkJggg==",
+  fermented_spider_eye: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAIVBMVEUAAADTmojEX2udHi17DSdlBitVAiJFBSE5BiAoCSIqABBqhS70AAAAAXRSTlMAQObYZgAAAENJREFUeNpjIBKwlxdAGCXG7mAWh7GQiReYYaLsDGG4mDiBGSUmoWAp9jRnV7cFIJHKmWleUIOWRUEZSxZAGVzI9gAA4IUMdq0ZhF8AAAAASUVORK5CYII=",
+  fishing_rod: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAf0lEQVQ4y2NgGAiQkpLy38XF5T/Zmj3NRP9ryHGTbgDIVpDmDD850g2Aae5MVwdrJskL6JphYmRrhoUF2ZqJMoBQgJWUlPynKLTxuoAqmrds3gzGpqam/7G5EKdmWCqbNm0aVgOI0gzigzQia/4PBMg0BgBpxJc8QS7CqZkSAADs7H6sIgQ4AAAAAABJRU5ErkJggg==",
+  ghast_tear: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAATUlEQVQ4y2NgGAV4gUVExH9zL6//ZGveevv2//mHD5NnCMiA8x8/gg0h2QCY7SADQJhkV8BsBwGyDQC5AATIDgeQBooCEWYI2ZpHEAAALQlb55AbNLUAAAAASUVORK5CYII=",
+  glass_bottle: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAbElEQVQ4y2NgGNTgSq7nfxBe6a76n3TNT7//P7N+KRxvPv+GNENAGkA2g/B0czHSDYAZAqJj+w/9JysMKDIAFAbIfJIMgWlG9zdRhuDSTLQhFBuAS2P32gvEBSguBUQbgE0RSZqRDUHHNMlwADOSe7Rn5KNOAAAAAElFTkSuQmCC",
+  glistering_melon_slice: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAMFBMVEUAAAD/////7ef/y8bxyQXerqrMlyDXfhXKcV2xhByadBjJSQjBPC2/MSNeVAuvFgsEt4fRAAAAAXRSTlMAQObYZgAAAFtJREFUeNpjwAZWQmmu1AtQAdu9EMYydX+I0BL9v2chIvaFe8FCK2Ov3/8LYryM+L/lPkiIL/n+7S97QYxlFnevX50AZL2aGqxk9gAk9GpmWh4DA4j17t0DhNUAGngjblJ53NgAAAAASUVORK5CYII=",
+  glowstone_dust: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAGFBMVEUAAAD51Jz/vF7rqk60cUCOVi5+SCFaORxHN0c3AAAAAXRSTlMAQObYZgAAAElJREFUeNpjwA/YEqCMZDWogKJKAZiRJGToDhZQUlRJAQklC5kIO4aDZIyETNxAciWKzs4uIBF2J5MUZ7C28hDXcgYwKC/HaiEA2vEMUqfTCnYAAAAASUVORK5CYII=",
+  golden_carrot: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAIVBMVEUAAAD+/+bq7lfsy0XbohOyZBFxUAhXPQZTKQZUEgkwFgBLt1TOAAAAAXRSTlMAQObYZgAAAFZJREFUeNp9i0kOwDAIAwmryf8fXKEmDarUWlzGY+gr7vFqwkEeje47HsXtK0WBmNhswqw5EdgFD5Zq1sZ0DFFLnAGLak7CYuXy9MRKd176FKV7MukvF0a5Aj/F1yF7AAAAAElFTkSuQmCC",
+  gunpowder: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAAAAAA6mKC9AAAAAnRSTlMAAHaTzTgAAABQSURBVHjanc+xDYBQEAJQF2KF6+muYBLGYGqTn1PzrYx0j9Bw/E/3y3JvdkzsVojHdswmxorFiC7MQI7FewIumywcVyP28gQosjCeCvh66gTrcxynvqTEKwAAAABJRU5ErkJggg==",
+  helmet: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAGFBMVEUAAAD///+h++hK7dkgxbUaqqcOPzYIJSASzXVWAAAAAXRSTlMAQObYZgAAADtJREFUeNpjwAvY0tISwIwUY+NwsICTkLFrAYhhpGziAmYYp6WHgBlm5eUlMEYpmOEOZTCkMzCUMxAFAO7pDb5r4fEVAAAAAElFTkSuQmCC",
+  hoe: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAHlBMVEUAAAAz68srx6wnspqJZydoTh5JNhUOPzYoHgsIJSBDqdTeAAAAAXRSTlMAQObYZgAAADFJREFUeNpjQAbs5VBGoVIBhME5WT0VyjL2YICAJEsIzRYxAcJIaYAJMJAqwNDBgAoA50AJ6TlXpBwAAAAASUVORK5CYII=",
+  leggings: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAGFBMVEUAAAD///+h++hK7dkgxbUaqqcOPzYIJSASzXVWAAAAAXRSTlMAQObYZgAAAEdJREFUeNpjwAbS0tLSQTSbopCyaQGIoWRsbAJmKJs4QxnupRCGcQE7hGFSwIbGcClgdwEzXAvYXUEM9tACIAIxyguACIvVAIxYEPa75ohKAAAAAElFTkSuQmCC",
+  lingering_potion: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAUUlEQVR42mMYBTQGV3I9/8NpcsB0c7H/V55+/w+iSda8+fyb/xh8YgHIVlyGkKkZAWL7D/2nnQH4NHavvfCfoAFQBZQZAFNEhmZMQ9AxTVIrAPGQWMET0DtTAAAAAElFTkSuQmCC",
+  mace: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAJ1BMVEUAAABCR1IuMztVXGmZoa6/zud8hJG1pcp6gsQjQmlQY5BmbHoeIimfHQpmAAAAAXRSTlMAQObYZgAAAE9JREFUeNpdi0EOwCAMw2poOxj9/3unHYbIfLOj2AZMwAPrHN49qtXhLT1OJz3oX2FlZoAUh2rsUy31e1RDfJrs13xf4gd/h6E7q0yo0vAALKYCQcUVkjkAAAAASUVORK5CYII=",
+  magma_cream: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAKlBMVEUAAAD+/v706U7G3Ffmyy+kxkrqpyeLqkHVhSDFXRhSdSm9QBi0GDphGBr7Q9AfAAAAAXRSTlMAQObYZgAAAFlJREFUeNpjwApWrYLSpaZrQTTXImXjqgsghqGQsgmIsVxRKLn7LJCx1Ei5yXsukLHY2Chjz14QQ8nMoxMkxeXs1j0bpJh3WXbnWRCD4e7JOXchRt+9i9VmAGnfHDd9ZydmAAAAAElFTkSuQmCC",
+  nether_wart: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAD1BMVEUAAAC+P0qmJTBcFRpOERZfcSbMAAAAAXRSTlMAQObYZgAAADVJREFUeNpjIA4wKihDGEwKJhAGs5OBEpghZOwgDGY4GypD5JicjaFqHJSh+pVcoAwTAhYBABb7BA1hxFN1AAAAAElFTkSuQmCC",
+  phantom_membrane: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAHlBMVEUAAACCbXLDuaHc2cCOf3qpm4ecioN+YnuVjHlvUWx4XYtIAAAAAXRSTlMAQObYZgAAAGJJREFUeNqVjzkSxDAIBD2XLf7/4S2k9RE4MQFFN0zA9qEAPGEDpcuBbDblWiztjqlTSDZp4ziqmTEphRrrwJN3akwBKr2/E3KSmM+EAkp/UabQPEYn2vRUAJqXqZqtXn/8Afv5AmLOG89GAAAAAElFTkSuQmCC",
+  pickaxe: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAHlBMVEUAAAAz68srx6wnspqJZydoTh5JNhUOPzYoHgsIJSBDqdTeAAAAAXRSTlMAQObYZgAAAEVJREFUeNpjwArKywvANLuQsXoqmFU509gDKplkCaHZIowmgBkpDZMnQAQYgAywAMOkCRABhokTIAIMnFABqBYoowPNZgA7zw9D/CrJmgAAAABJRU5ErkJggg==",
+  potion: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAbElEQVQ4y2NgGNTgSq7nfxBe6a76n3TNT7//P7N+KRxvPv+GNENAGkA2g/B0czHSDYAZAqJj+w/9JysMKDIAFAbIfJIMgWlG9zdRhuDSTLQhFBuAS2P32gvEBSguBUQbgE0RSZqRDUHHNMlwADOSe7Rn5KNOAAAAAElFTkSuQmCC",
+  pufferfish: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAM1BMVEUAAAC2eCa/hBvYlRqRWxX7pwx+qL1Cm7r/yQg1iqjevYX6+vodLCbuz5v85bzSpE2DUA4CpiNQAAAAAXRSTlMAQObYZgAAAHpJREFUeNp1j0ESwzAIAwFhkjTG4v+vrdM605lOu5xW0gX5S/tSh88obnfse3O3iFW36QAittWjNZwd23sA7yds0uxQkwiHwTJhqnSRLULNsncqxyiZyaFQkJkjWXJROUbO4yhersWxkhK5J3w5V/AoZrJKPtSEv79+AhpKBQiPH1kFAAAAAElFTkSuQmCC",
+  rabbit_foot: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAElBMVEUAAADYsoHHnme0i1uCYEFlTjlr5w3fAAAAAXRSTlMAQObYZgAAAERJREFUeNpjwAFcoDSLcQCUoSgKZQiqQmgnRVOwSkdlJVOwAkEhI5BiZ0FFJbAuV0UhZbCSUBUlU7AxrCYgGiwUgN1eAPgjCBJuhUG0AAAAAElFTkSuQmCC",
+  redstone_dust: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAGFBMVEUAAAD/AACqDwFyAABcBwBBBQA0BgUtAAChZ6iRAAAAAXRSTlMAQObYZgAAAElJREFUeNpjwA9YHKAMZxWogKJqAZjhJGQYDhZQUlR1BQk5C5kKB6WDZIyETENAcqWKykGhIBH2IFPXMLC28tSwcgYwKC/HaiEAtf4MFvnbFVwAAAAASUVORK5CYII=",
+  shears: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAG1BMVEUAAADV1dWoqKhwcHCmTz+LQzZvNStCQkJcLR/CipSaAAAAAXRSTlMAQObYZgAAAEhJREFUeNqVzDESgEAIQ9EQJHD/EzvoDGypv3spgu+JZjztba6DbRtfr21c/pg7ADR6HYZTNY8FSGOQkiLWgEfUGA5kc8vEn26f6QFCsmQsWgAAAABJRU5ErkJggg==",
+  shovel: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAHlBMVEUAAABJNhUoHgsz68sIJSAOPzaJZycrx6wnsppoTh6NJ1OoAAAAAXRSTlMAQObYZgAAADhJREFUGFeVyTkCACAMAkFyqv//sG3Ayu0GgJ+qkh2x51KxdiR7zQGmbleDfBwzazH/9vxiwHWgLn4QANVOSXqPAAAAAElFTkSuQmCC",
+  slime_block: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAD1BMVEV7zmp7ymJzwmJitkpaqkNwFwlyAAAABXRSTlO0tLS0tDvOO00AAABeSURBVHjaBcCBbcMwEATB2Vf6rzjgGZ2eMnp23YOz4P5r1cRW252qbRPupiy5w74gthscbOhNHK2jYA4CiE5jcbPVNw1iq2MD0+Ge3jgxb/WZxZjd32wzA3SvyKD5AUDRPSx6JPz2AAAAAElFTkSuQmCC",
+  spider_eye: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAZklEQVQ4y2NgGAW0A9W86v9BOJRJCYxJ1jxXTvf/g5NnwDSIr8UgQLwhIBsfrNvy/0h8NtiAVDZt0g0AaYTZTpYBMI0gDOKTZAAIgDQgY7IMQXcRWQbAwoPkcED2CtmakQ2hWYoFACSiSEOc11stAAAAAElFTkSuQmCC",
+  splash_potion: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAXUlEQVR42mMYWuBKrud/EKZI80p3VdINiO0/9H+6uRhIM+kGbD7/Bq4BZAgIk6YZwSZN85Wn3/+jGUaaZnRNMD4ZmjEDlHYG4NPYvfbCf/oYAFNEhmZMQ9AxTTIYAAi7chyFLBJRAAAAAElFTkSuQmCC",
+  stone: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAAAAAA6mKC9AAAAXklEQVR42gXBMQEAMAwEocqNgNuR8JYLb9uUruCRgLv0dFddBR6bsaF6Ucm2xTNAXddebGur4NVdV1R424xtoMewjW3zTuouUT2wgc2eyhR3XW9TVFR7CsC2PaBsxAdyLn2NNWHIVAAAAABJRU5ErkJggg==",
+  sugar: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAbklEQVR42t2TsQnAMAwEM6SG8IqawbXr9FpC4YvAwwtEXAULBGru/l34OnzcZ2K34YhIDO7PMM9ad5qN3ILRQiU9LA3cp0iqN3MyALndJ0k0nSUM9y3MxptStWCJCERCMIAOVgm2AAVuRbz//S8PL5YmYL8b5m8AAAAASUVORK5CYII=",
+  sword: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAJFBMVEUAAAAOPzYIJSAz68uk/fArx6weincVY1VoTh5JNhUoHguJZycazUdMAAAAAXRSTlMAQObYZgAAAExJREFUGNN1jsENwDAMAgGndpLuv29/jZFa/+4QwkA/ks5jyPky8cHxwyQAxslZNAaYiux9Zlb4A0XjNcVu1r0hvYacGwB0Rq0OSC4ehwkBE0lygnsAAAAASUVORK5CYII=",
+  tipped_arrow: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAANklEQVR42mMYBaSBznT1/xRp1pDj/j+qmdaaHzx48P/YsWOUaQbR9vb2pBsA1IShmSxD6J68AamWM9kgGeoQAAAAAElFTkSuQmCC",
+  trident: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAbUlEQVQ4y2NgoAeYNm3afxCgSPONGzfABoBoog3DpRkkTrQBZGsGgezs7P96cQH/0TUT7Q2Q5oi5fWBD0DWDDCfKAIfKTDBGdglRmsXcLcEaQTQIgzTBMNE2gzSSHO8wf480zWQHGCy6yNYMBACktqum4kbbjgAAAABJRU5ErkJggg==",
+  turtle_shell: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAX0lEQVQ4y2NgGAVYgXS04X9smGjN9kuc/rvv90LBIDEuQ4n/RGk2KLJHMQRZDK8hIANgmkAasLGJMgBkE7LfQZpgLiJoAMg2mCZ0DJIjaADMn9gw0QGJTRHMkNFEjgkA/VV4u/43bYYAAAAASUVORK5CYII=",
+};
+const BLANK_ICON = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+function iconImg(src){ return src ? el('img', {class:'icon', src, alt:'', 'aria-hidden':'true'}) : null; }
+
 const ROMAN = ['0','I','II','III','IV','V','VI','VII','VIII','IX','X'];
 function fmtTime(seconds){
   const h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60), s = seconds % 60;
@@ -951,8 +1023,8 @@ function tile(num, cap, sub){
     el('div', {class:'num'}, num, sub ? el('small', {}, ' ' + sub) : null),
     el('div', {class:'cap', text:cap}));
 }
-function stateChip(text){ return el('span', {class:'state', text}); }
-function ingChip(text){ return el('span', {class:'ing', text:'+ ' + text}); }
+function stateChip(text, icon){ return el('span', {class:'state'}, iconImg(icon), text); }
+function ingChip(text, icon){ return el('span', {class:'ing'}, iconImg(icon), '+ ' + text); }
 function arrow(){ return el('span', {class:'arr', 'aria-hidden':'true', text:'→'}); }
 
 /* ------------------------------ ANVIL UI ------------------------------ */
@@ -963,11 +1035,12 @@ function bootAnvil(){
   const selItem = $('#an-item'), inUses = $('#an-uses'),
         selHaveE = $('#an-have-ench'), selHaveL = $('#an-have-lvl'),
         selBookE = $('#an-book-ench'), selBookL = $('#an-book-lvl'),
-        out = $('#an-out');
+        out = $('#an-out'), itemIcon = $('#an-item-icon');
 
   for (const [id, it] of Object.entries(A.ITEMS))
     selItem.append(el('option', {value:id, text:it.name}));
   selItem.value = S.itemId;
+  itemIcon.src = ICONS[S.itemId] || BLANK_ICON;
 
   function fillEnchSelect(sel){
     sel.textContent = '';
@@ -993,11 +1066,11 @@ function bootAnvil(){
     const haveUl = $('#an-have-list'), bookUl = $('#an-book-list');
     haveUl.textContent = ''; bookUl.textContent = '';
     S.have.forEach((h, i) => haveUl.append(el('li', {},
-      el('span', {}, `${A.ENCH[h.id].name} ${ROMAN[h.lvl]}`),
+      el('span', {}, iconImg(ICONS[S.itemId]), `${A.ENCH[h.id].name} ${ROMAN[h.lvl]}`),
       el('button', {class:'mini', type:'button', 'aria-label':`Remove ${A.ENCH[h.id].name}`,
         onclick:() => { S.have.splice(i, 1); render(); }}, '✕'))));
     S.books.forEach((b, i) => bookUl.append(el('li', {},
-      el('span', {}, `Book — ${A.ENCH[b.id].name} ${ROMAN[b.lvl]}`),
+      el('span', {}, iconImg(ICONS.book), `Book — ${A.ENCH[b.id].name} ${ROMAN[b.lvl]}`),
       el('button', {class:'mini', type:'button', 'aria-label':`Remove book ${A.ENCH[b.id].name}`,
         onclick:() => { S.books.splice(i, 1); render(); }}, '✕'))));
   }
@@ -1032,10 +1105,10 @@ function bootAnvil(){
       const step = el('li', {class:'step'},
         el('span', {class:'no'}, 'step', el('b', {text:String(i + 1)})),
         el('span', {class:'tr'},
-          stateChip(`${unitLabel(s.target)} · PW ${s.target.uses}`),
-          ingChip(unitLabel(s.sac)),
+          stateChip(`${unitLabel(s.target)} · PW ${s.target.uses}`, ICONS[s.target.itemId]),
+          ingChip(unitLabel(s.sac), ICONS[s.sac.itemId]),
           arrow(),
-          stateChip(`${unitLabel(s.result)} · PW ${s.result.uses}`),
+          stateChip(`${unitLabel(s.result)} · PW ${s.result.uses}`, ICONS[s.result.itemId]),
           el('span', {class:'no', style:'grid-row:auto', text:`${s.cost} lv`})));
       if (s.dropped.length)
         step.append(el('span', {class:'note',
@@ -1057,6 +1130,7 @@ function bootAnvil(){
 
   selItem.addEventListener('change', () => {
     S.itemId = selItem.value;
+    itemIcon.src = ICONS[S.itemId] || BLANK_ICON;
     S.have = S.have.filter(h => A.applies(h.id, S.itemId));
     S.books = S.books.filter(b => A.applies(b.id, S.itemId));
     fillEnchSelect(selHaveE); fillEnchSelect(selBookE); render();
@@ -1096,7 +1170,13 @@ function bootBrew(){
         potLabel = $('#br-pot-label'), potWhy = $('#br-pot-why'),
         extWrap = $('#br-ext-wrap'), ext = $('#br-ext'), extWhy = $('#br-ext-why'),
         selForm = $('#br-form'), qty = $('#br-qty'), qtyLab = $('#br-qty-lab'),
-        stands = $('#br-stands'), out = $('#br-out'), durP = $('#br-duration');
+        stands = $('#br-stands'), out = $('#br-out'), durP = $('#br-duration'),
+        effectIcon = $('#br-effect-icon');
+
+  const formIcon = form => ({potion:ICONS.potion, splash:ICONS.splash_potion,
+    lingering:ICONS.lingering_potion, tipped_arrow:ICONS.tipped_arrow}[form]);
+  const iconForState = s => s.kind === 'water' ? ICONS.glass_bottle
+    : s.kind === 'awkward' ? ICONS.potion : formIcon(s.form);
 
   const direct = el('optgroup', {label:'Brewed directly'});
   const corr = el('optgroup', {label:'Corruption-only (auto-routes via source potion + fermented spider eye)'});
@@ -1106,6 +1186,7 @@ function bootBrew(){
 
   function syncToggles(){
     const id = selEffect.value, e = B.EFFECTS[id];
+    effectIcon.src = ICONS[e.ingredient] || ICONS.fermented_spider_eye || BLANK_ICON;
     durP.textContent = e.duration
       ? `Base duration ${e.duration} — display-only flavor; II/extended variants not modeled.`
       : 'Base duration not listed — durations are display-only flavor anyway.';
@@ -1140,7 +1221,7 @@ function bootBrew(){
     S.targets.forEach((t, i) => {
       const e = B.EFFECTS[t.effect];
       ul.append(el('li', {},
-        el('span', {}, targetLabel(t),
+        el('span', {}, iconImg(formIcon(t.form)), targetLabel(t),
           el('span', {class:'meta', text: e.duration ? ` · base ${e.duration}` : ''})),
         el('button', {class:'mini', type:'button', 'aria-label':`Remove ${targetLabel(t)}`,
           onclick:() => { S.targets.splice(i, 1); render(); }}, '✕')));
@@ -1179,10 +1260,10 @@ function bootBrew(){
         const step = el('li', {class:'step'},
           el('span', {class:'no'}, cyc.split(' ')[0], el('b', {text:cyc.split(' ')[1]})),
           el('span', {class:'tr'},
-            stateChip(B.stateName(s.from)),
-            ingChip(B.ITEM_NAMES[s.ingredient] || s.ingredient),
+            stateChip(B.stateName(s.from), iconForState(s.from)),
+            ingChip(B.ITEM_NAMES[s.ingredient] || s.ingredient, ICONS[s.ingredient]),
             arrow(),
-            stateChip(B.stateName(s.to))));
+            stateChip(B.stateName(s.to), iconForState(s.to))));
         if (s.note) step.append(el('span', {class:'note alt', text:s.note}));
         list.append(step);
       });
@@ -1191,10 +1272,10 @@ function bootBrew(){
         list.append(el('li', {class:'step craft'},
           el('span', {class:'no'}, 'craft', el('b', {text:'×' + c.crafts})),
           el('span', {class:'tr'},
-            stateChip(`${c.crafts}× ${B.stateName(c.final)}`),
-            ingChip(`${c.crafts * B.ARROWS_PER_CRAFT}× Arrow`),
+            stateChip(`${c.crafts}× ${B.stateName(c.final)}`, iconForState(c.final)),
+            ingChip(`${c.crafts * B.ARROWS_PER_CRAFT}× Arrow`, ICONS.arrow),
             arrow(),
-            stateChip(`${c.crafts * B.ARROWS_PER_CRAFT}× Tipped Arrow`)),
+            stateChip(`${c.crafts * B.ARROWS_PER_CRAFT}× Tipped Arrow`, ICONS.tipped_arrow)),
           el('span', {class:'note',
             text:`Crafting, not brewing: 8 arrows + 1 lingering potion → 8 tipped arrows.` +
                  (surplus ? ` ${surplus} surplus arrow${surplus > 1 ? 's' : ''} beyond the ${c.target.qty} requested.` : '')})));
@@ -1222,7 +1303,7 @@ function bootBrew(){
     const tb = el('tbody');
     for (const r of plan.bom)
       tb.append(el('tr', {},
-        el('td', {}, B.ITEM_NAMES[r.id] || r.id),
+        el('td', {}, iconImg(ICONS[r.id]), B.ITEM_NAMES[r.id] || r.id),
         el('td', {class:'n', text:'× ' + r.count}),
         el('td', {}, el('span', {class:'role', text:r.role}))));
     tbl.append(tb);
