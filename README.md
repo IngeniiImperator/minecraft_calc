@@ -1,12 +1,12 @@
 # Minecraft Calc
 
-Three Minecraft **Java Edition 1.21.x** planning tools — an **Anvil
-Combiner**, a **Brewing Planner**, and a **Book Library & Merge Planner** —
-bundled into one self-contained HTML file. No build step, no install, no
-server, no network calls, no dependencies: open `index.html` in a browser
-and it works.
+Four Minecraft **Java Edition 1.21.x** planning tools — an **Anvil
+Combiner**, a **Brewing Planner**, a **Book Library & Merge Planner**, and
+**Character Profiles** with import/export — bundled into one self-contained
+HTML file. No build step, no install, no server, no network calls, no
+dependencies: open `index.html` in a browser and it works.
 
-*Java Edition 1.21.x · zero dependencies · single HTML file · 25 automated
+*Java Edition 1.21.x · zero dependencies · single HTML file · 31 automated
 self-tests · works fully offline*
 
 Not an official Minecraft product. Not approved by or associated with
@@ -20,6 +20,7 @@ Mojang or Microsoft.
   - [Anvil Combiner](#anvil-combiner)
   - [Brewing Planner](#brewing-planner)
   - [Book Library & Merge Planner](#book-library--merge-planner)
+  - [Character Profiles](#character-profiles)
 - [How the Numbers Work](#how-the-numbers-work)
 - [Scope and Non-Goals](#scope-and-non-goals)
 - [Architecture](#architecture)
@@ -34,19 +35,23 @@ Mojang or Microsoft.
 
 Minecraft Calc is a set of deterministic, offline "second screen" planning
 tools for players who want to work out the cheapest anvil combine order, a
-full brewing shopping list, or which enchanted books to save for later
-*before* spending XP levels, brewing-stand time, or storage space in game.
-All three tools live in a single HTML file with all logic, styling, and
+full brewing shopping list, which enchanted books to save for later, or
+which of their five near-identical axes was the Fortune build, *before*
+spending XP levels, brewing-stand time, or storage space in game.
+All four tools live in a single HTML file with all logic, styling, and
 even icon assets embedded inline — there is nothing to install and nothing
 is ever sent over the network.
 
-The three modules are switched with a tab bar at the top of the page and
+The four modules are switched with a tab bar at the top of the page and
 are otherwise unrelated: they share only a CSS theme and a handful of
 generic DOM helpers. The Anvil Combiner and Brewing Planner are
-single-session calculators with no persistence; the Book Library is the
-one module that saves its data (to the browser's `localStorage`, still
-never leaving the device) so a book collection survives a page reload —
-see [Book Library & Merge Planner](#book-library--merge-planner).
+single-session calculators with no persistence; the Book Library and
+Character Profiles modules save their data (to the browser's
+`localStorage`, still never leaving the device) so it survives a page
+reload, and Character Profiles can additionally be exported to and
+imported from a plain JSON file — see
+[Book Library & Merge Planner](#book-library--merge-planner) and
+[Character Profiles](#character-profiles).
 
 ## Quick Start
 
@@ -295,13 +300,76 @@ hand versus how many the project still needs.
 intentionally out of scope for this pass: automatic merge suggestions, XP
 cost estimation for planned merges, enchantment-conflict detection in the
 planner itself (the Anvil Combiner already does this for an actual
-combine job), wishlist tracking, duplicate detection, and import/export.
+combine job), wishlist tracking, duplicate detection, and import/export
+of the book catalog (the [Character Profiles](#character-profiles) module
+has its own import/export, but the book catalog itself still has none).
+
+### Character Profiles
+
+Persistent characters with their own inventories, independent of any one
+book, plan, or project in the other modules — built for players who own
+several copies of the same base item that serve different purposes and
+want each copy to keep its own identity. Like the Book Library, profiles
+persist across reloads in the browser's `localStorage`; unlike any other
+module, they can also be **exported to and imported from a JSON file**, so
+builds survive book merges, move between browsers, and can be shared.
+
+**Characters**
+
+Create any number of named characters (rename, notes, and delete are
+inline), and switch the whole tab between them with an active-character
+select. The equipment panel shows a six-slot loadout — Main Hand, Off
+Hand, Head, Chest, Legs, Feet — with whatever is currently equipped in
+each slot.
+
+**Items with individual identity**
+
+Every inventory entry is an item *instance*, not just a type. Two Diamond
+Axes can coexist as "Woodcutting (+15 Harvest Speed)" and "Battle Axe
+(+12 Damage)", each recording:
+
+- **Base item and material** — the same 18 item types and material tiers
+  as the Anvil Combiner (with the matching inline icon).
+- **Custom name** — free text; falls back to the material + item name
+  (e.g. "Diamond Axe") when blank.
+- **Enchantments and levels** — built with the same chip-list flow as the
+  other modules, offering only enchantments applicable to the chosen item
+  type.
+- **Custom stats** — free-form label/value pairs ("Harvest Speed — +15",
+  "Rare Ore Chance — +30"), addable and removable both at creation time
+  and inline on the item card afterward.
+- **Notes** — free text, editable inline.
+- **Equipped slot** — armor is locked to its own slot (elytra shares the
+  chest slot), anything else can go in either hand; equipping into an
+  occupied slot automatically unequips the previous holder.
+
+Items can be **duplicated** in one click (the copy gets its own identity
+and starts unequipped) — handy for cataloguing a second copy of an
+already-described item — and deleted individually.
+
+**Import / Export**
+
+- **Export** all characters, or just the active one, either as a
+  downloaded `.json` file or as JSON text shown on screen for
+  copy/paste.
+- **Import** from a chosen file or pasted JSON, in one of two modes:
+  **Merge** (a profile whose id matches an existing one updates it in
+  place; everything else is appended) or **Replace** (the imported list
+  wins outright).
+- The format is a versioned envelope (`"format":
+  "mc-calc-character-profiles", "version": 1`): unrelated JSON, files
+  from a newer format version, and malformed payloads are each rejected
+  with a specific error message instead of being half-imported, and items
+  with an unknown base item type are skipped and reported rather than
+  failing the whole import. Everything that survives validation —
+  ids, names, notes, enchantments, custom stats, equipped slots — round-
+  trips losslessly (covered by self-test C4).
 
 ## How the Numbers Work
 
 A quick-reference table of the constants driving the anvil and brewing
-engines (the Book Library has no fixed game constants — see
-[Book Library & Merge Planner](#book-library--merge-planner) above):
+engines (the Book Library and Character Profiles modules have no fixed
+game constants — see their sections above):
 
 | Constant | Value | Meaning |
 | --- | --- | --- |
@@ -336,12 +404,23 @@ engines (the Book Library has no fixed game constants — see
 - The Merge Planner is organizational only — it does not compute or
   validate an actual anvil combine (use the Anvil Combiner tab for that),
   and it does not estimate XP cost.
-- No accounts, multiplayer/server integration, or sync between devices —
-  the Book Library persists locally via `localStorage` on the one device
-  and browser it's used in; the Anvil Combiner and Brewing Planner remain
-  single-session with no persistence at all. No import/export yet either
-  (see [Book Library & Merge Planner](#book-library--merge-planner) above
-  for the full list of features left for later).
+- No accounts, multiplayer/server integration, or automatic sync between
+  devices — the Book Library and Character Profiles persist locally via
+  `localStorage` on the one device and browser they're used in; the Anvil
+  Combiner and Brewing Planner remain single-session with no persistence
+  at all. Character Profiles can be moved between devices manually via
+  their JSON export/import; the book catalog has no import/export (see
+  [Book Library & Merge Planner](#book-library--merge-planner) above for
+  the full list of features left for later).
+- Character Profiles' custom stats are free-form labels, not computed
+  numbers — the module records what you tell it ("+15 Harvest Speed")
+  and never tries to validate or simulate those figures against game
+  mechanics. Real computed stats live in the Anvil Combiner's gear-stats
+  panel.
+- Multiple loadouts per character, character templates, item
+  tagging/categories, and cloud sync are flagged in the feature request
+  as future enhancements and are not implemented; the versioned export
+  format is the groundwork for them.
 - One fixed dark visual theme; there is no light-mode toggle.
 
 ## Architecture
@@ -351,7 +430,7 @@ CSS, JavaScript engines, UI code, and self-tests. `README.md` is the only
 other file in the repository — there is no build config, package
 manifest, or CI pipeline, by design.
 
-The JavaScript is organized into four independent, pure-function "engine"
+The JavaScript is organized into five independent, pure-function "engine"
 namespaces, each an IIFE that returns a frozen object of functions and
 constants:
 
@@ -370,24 +449,36 @@ constants:
   reaching into `AnvilEngine`'s internals — the UI (`bootLibrary()`) is
   what looks up enchantment names, max levels, and compatible equipment
   from `AnvilEngine.ENCH` when building on-screen labels and filters.
+- **`CharacterEngine`** — character-profile and item-instance
+  construction (`makeProfile`/`makeItem`), equipment-slot rules
+  (`slotsFor`/`equip`/`equipped`), and the versioned import/export format
+  (`serializeProfiles`/`parseImport`/`mergeProfiles`). It follows the
+  same decoupling rule: item and enchantment ids are plain strings to it,
+  and `parseImport` takes the list of known item ids as an *argument*
+  (`opts.knownItemIds`, supplied by the UI from `AnvilEngine.ITEMS`)
+  rather than reading `AnvilEngine` itself. All file I/O — `Blob`
+  downloads, the file picker, clipboard-friendly JSON display — lives in
+  the UI layer (`bootCharacters()`); the engine only produces and
+  validates plain objects.
 
-Each engine is DOM-free by construction — none of the four ever
+Each engine is DOM-free by construction — none of the five ever
 references `document` or `window` — and `Object.freeze()`-d, so it only
 exposes its intended public surface. A separate `HAS_DOM` check, defined
-after all four engines, gates the DOM-touching UI layer instead. A small
+after all five engines, gates the DOM-touching UI layer instead. A small
 shared UI layer (`el()`, `$()`, `tile()`, `stateChip()`, and similar
 helpers) renders every module's DOM purely from those engines' return
-values; a `bootTabs()` / `bootAnvil()` / `bootBrew()` / `bootLibrary()`
-sequence wires everything up on `DOMContentLoaded`.
+values; a `bootTabs()` / `bootAnvil()` / `bootBrew()` / `bootLibrary()` /
+`bootCharacters()` sequence wires everything up on `DOMContentLoaded`.
 
-`bootLibrary()` is the one boot function that talks to browser storage:
-it loads its catalog/plans/projects from a single `localStorage` key
-(`mc_calc_library_v1`) on boot and writes back to it after every mutation
-(`saveLibrary()`), wrapped in a `try`/`catch` so a full or unavailable
-store (private browsing, quota) degrades to a session-only in-memory
-catalog instead of throwing. This is the only place in the codebase that
-touches `localStorage` — the Anvil Combiner and Brewing Planner keep their
-state in an in-memory `S` object for the tab's lifetime only, as before.
+`bootLibrary()` and `bootCharacters()` are the two boot functions that
+talk to browser storage: each loads its state from its own `localStorage`
+key (`mc_calc_library_v1` and `mc_calc_characters_v1` respectively) on
+boot and writes back after every mutation, wrapped in a `try`/`catch` so
+a full or unavailable store (private browsing, quota) degrades to a
+session-only in-memory state instead of throwing. These are the only
+places in the codebase that touch `localStorage` — the Anvil Combiner and
+Brewing Planner keep their state in an in-memory `S` object for the tab's
+lifetime only, as before.
 
 All vanilla item and block icons are embedded as base64 PNG data URIs in
 an `ICONS` table, and even the favicon is an inline SVG data URI — nothing
@@ -398,7 +489,7 @@ At the bottom of the script:
 
 ```js
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = {AnvilEngine, BrewEngine, GearEngine, LibraryEngine, run_self_tests};
+  module.exports = {AnvilEngine, BrewEngine, GearEngine, LibraryEngine, CharacterEngine, run_self_tests};
 ```
 
 This is what lets the engines run headlessly under Node for testing, with
@@ -406,21 +497,24 @@ no change to the browser code path.
 
 ## Testing
 
-`run_self_tests()` runs **25 assertions** across all four engines: 5
+`run_self_tests()` runs **31 assertions** across all five engines: 5
 anvil cases (T1–T5), 10 gear-stats cases (W1–W10), 5 brewing cases
-(B1–B5), and 5 library cases (L1–L5) — covering things like the
-prior-work-penalty formula, the 40-level cap, the optimizer beating a
-naive sequential combine order, correct stat folding vs. separate
-conditional lines, corruption-effect routing, the mutually-exclusive
-Potency/Extended validation error, batch sizes that don't divide evenly
-into brew cycles, catalog filtering by enchantment/level and by
-compatible-equipment set, merge plans reserving and releasing books, a
-manual Used status overriding automatic reservation, and upgrade-project
-completion percentages.
+(B1–B5), 5 library cases (L1–L5), and 6 character cases (C1–C6) —
+covering things like the prior-work-penalty formula, the 40-level cap,
+the optimizer beating a naive sequential combine order, correct stat
+folding vs. separate conditional lines, corruption-effect routing, the
+mutually-exclusive Potency/Extended validation error, batch sizes that
+don't divide evenly into brew cycles, catalog filtering by
+enchantment/level and by compatible-equipment set, merge plans reserving
+and releasing books, a manual Used status overriding automatic
+reservation, upgrade-project completion percentages, two same-type items
+keeping separate identities, equipment-slot rules and displacement, a
+lossless export → import round-trip, rejection of malformed or
+wrong-version import files, and merge-vs-replace import semantics.
 
 The suite runs automatically the moment the page loads: results are
 printed with `console.table()`, and the footer shows a live pass/fail
-badge (e.g. *"self-tests: 25/25 passing (see console.table)"*).
+badge (e.g. *"self-tests: 31/31 passing (see console.table)"*).
 
 It can also run headlessly with only Node.js — no browser, no
 dependencies:
@@ -448,9 +542,10 @@ badge (or the command above) still shows everything passing.
   keyboard navigation and a roving `tabindex`.
 - Every dynamic output card is an `aria-live="polite"` region — the
   combine-order and item-stats panels in the Anvil Combiner, the brew-plan
-  panel in the Brewing Planner, and the catalog/projects panels in the
-  Book Library — so recalculated output is announced to assistive
-  technology without manual refocus.
+  panel in the Brewing Planner, the catalog/projects panels in the
+  Book Library, and the equipment/inventory panels in Character Profiles —
+  so recalculated output is announced to assistive technology without
+  manual refocus.
 - Every interactive control has a visible `:focus-visible` outline, and
   `@media (prefers-reduced-motion: reduce)` disables transitions and
   animations.
@@ -458,8 +553,10 @@ badge (or the command above) still shows everything passing.
 - Requires JavaScript (a `<noscript>` message explains this if it's
   disabled); no Internet Explorer support and no polyfills are included.
 - Makes **zero outbound network requests** — no external fonts, scripts,
-  images, or analytics of any kind. The Book Library's `localStorage` use
-  is purely local browser storage, not a network call.
+  images, or analytics of any kind. The Book Library's and Character
+  Profiles' `localStorage` use is purely local browser storage, and
+  profile export/import reads and writes local files only — neither is a
+  network call.
 
 ## Project Structure
 
@@ -479,10 +576,13 @@ minecraft_calc/
 - Add or update a `run_self_tests()` case for any new or changed
   mechanic, and confirm all tests still pass (see [Testing](#testing))
   before submitting changes.
-- `GearEngine` and `LibraryEngine` intentionally read `AnvilEngine`'s item
-  ids and enchantment maps as plain data (or leave that lookup to the UI
-  layer, in `LibraryEngine`'s case) rather than importing `AnvilEngine`'s
+- `GearEngine`, `LibraryEngine`, and `CharacterEngine` intentionally read
+  `AnvilEngine`'s item ids and enchantment maps as plain data (or leave
+  that lookup to the UI layer) rather than importing `AnvilEngine`'s
   internals — keep that separation when extending any engine.
+- If you change the character-profile export schema, bump
+  `CharacterEngine.VERSION` and keep `parseImport` able to read every
+  older version — exported files are long-lived and must stay importable.
 - Keep the project dependency-free: no build tooling, no external
   requests, and no added libraries or frameworks.
 
