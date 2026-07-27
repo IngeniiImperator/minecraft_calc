@@ -4,13 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<title>Minecraft Calc — Anvil Combiner, Brewing Planner, Book Library &amp; Character Profiles</title>
+<title>Minecraft Calc — Anvil Combiner, Brewing Planner, Book Library, Character Profiles &amp; AFK Clicker</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%230e0f13"/><rect x="3" y="3" width="10" height="3" fill="%23a7b0c0"/><rect x="6" y="6" width="4" height="3" fill="%23808a9c"/><rect x="4" y="9" width="8" height="4" fill="%23a7b0c0"/><rect x="12" y="10" width="2" height="2" fill="%23b78aff"/></svg>'>
 <style>
 /* ================================================================
    WORKSHOP TERMINAL — shared dark theme
-   Two modules share every token below; the brewing module adds
-   exactly one accent custom property (potion violet), per spec.
+   All modules share every token below; each module past the first
+   adds exactly one accent custom property (potion violet, book gold,
+   diamond blue, bobber orange), per spec.
    ================================================================ */
 :root{
   --bg:          #0e0f13;
@@ -31,6 +32,7 @@
   --accent-brew: #b78aff;            /* potion violet — the brewing module's one added accent */
   --accent-lib:  #f2c94c;            /* enchanted-book gold — the library module's one added accent */
   --accent-char: #6fc3ff;            /* diamond blue — the character-profiles module's one added accent */
+  --accent-click:#ff9e64;            /* bobber orange — the AFK-clicker module's one added accent */
   --accent:      var(--accent-anvil);
   --mono: ui-monospace,"Cascadia Code","JetBrains Mono","IBM Plex Mono","SF Mono",
           Menlo,Consolas,"Liberation Mono",monospace;
@@ -65,6 +67,7 @@ header.masthead{display:flex; flex-wrap:wrap; gap:22px; align-items:flex-end;
 .brand h1 .h2l{color:var(--accent-brew)}
 .brand h1 .h3l{color:var(--accent-lib)}
 .brand h1 .h4l{color:var(--accent-char)}
+.brand h1 .h5l{color:var(--accent-click)}
 .brand .sub{margin:6px 0 0; color:var(--dim); font-size:13px; letter-spacing:.04em}
 
 /* ---------- tabs (hotbar) ---------- */
@@ -89,6 +92,7 @@ header.masthead{display:flex; flex-wrap:wrap; gap:22px; align-items:flex-end;
 #tab-anvil{--tab-accent:var(--accent-anvil)}
 #tab-lib{--tab-accent:var(--accent-lib)}
 #tab-char{--tab-accent:var(--accent-char)}
+#tab-click{--tab-accent:var(--accent-click)}
 
 /* ---------- module panels ---------- */
 section[role="tabpanel"]{outline:none}
@@ -96,6 +100,7 @@ section[role="tabpanel"]{outline:none}
 #panel-brew {--accent:var(--accent-brew)}
 #panel-lib  {--accent:var(--accent-lib)}
 #panel-char {--accent:var(--accent-char)}
+#panel-click{--accent:var(--accent-click)}
 .module-grid{display:grid; grid-template-columns:minmax(320px,380px) 1fr; gap:22px; align-items:start}
 
 .card{
@@ -297,7 +302,7 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
 
 <header class="masthead">
   <div class="brand">
-    <h1>Minecraft <span class="hl">Calc</span><br><span aria-hidden="true">▚</span> <span class="hl">Anvil</span> + <span class="h2l">Brewing</span> + <span class="h3l">Library</span> + <span class="h4l">Characters</span></h1>
+    <h1>Minecraft <span class="hl">Calc</span><br><span aria-hidden="true">▚</span> <span class="hl">Anvil</span> + <span class="h2l">Brewing</span> + <span class="h3l">Library</span> + <span class="h4l">Characters</span> + <span class="h5l">Clicker</span></h1>
     <p class="sub">Java Edition 1.21.x · deterministic planners · single file, no network</p>
   </div>
   <nav class="tabs" role="tablist" aria-label="Calculator modules">
@@ -309,6 +314,8 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
       <span class="dot" aria-hidden="true"></span>Book Library</button>
     <button class="tab" id="tab-char" role="tab" aria-selected="false" aria-controls="panel-char" tabindex="-1">
       <span class="dot" aria-hidden="true"></span>Characters</button>
+    <button class="tab" id="tab-click" role="tab" aria-selected="false" aria-controls="panel-click" tabindex="-1">
+      <span class="dot" aria-hidden="true"></span>AFK Clicker</button>
   </nav>
 </header>
 
@@ -594,10 +601,96 @@ footer{margin-top:46px; color:var(--faint); font-size:12.5px; border-top:2px sol
     </div>
   </div>
 </section>
+
+<!-- ========================== AFK CLICKER ========================= -->
+<section id="panel-click" role="tabpanel" aria-labelledby="tab-click" data-module="click" hidden>
+  <div class="module-grid">
+    <div>
+      <div class="card">
+        <h2>Clicker setup</h2>
+        <label class="f"><span class="lab">Preset</span>
+          <select id="ck-preset"></select></label>
+        <label class="f"><span class="lab">Interval between clicks (ms)</span>
+          <input id="ck-interval" type="number" min="100" max="3600000" step="50" value="1200"></label>
+        <p class="empty" style="margin:-6px 0 12px">1,200 ms is the commonly recommended
+          pacing for click-based AFK fish farms — adjust to match your farm design.</p>
+        <label class="f"><span class="lab">Mouse button</span>
+          <select id="ck-button">
+            <option value="right">Right — use item (cast / reel a fishing rod)</option>
+            <option value="left">Left — attack / mine</option>
+            <option value="middle">Middle</option>
+          </select></label>
+        <div class="row">
+          <label class="f"><span class="lab">Toggle key</span><select id="ck-toggle"></select></label>
+          <label class="f"><span class="lab">Quit key</span><select id="ck-quit"></select></label>
+        </div>
+        <p class="empty" style="margin:-6px 0 12px">Only keys vanilla Minecraft leaves
+          unbound are offered (F1/F2/F3/F5/F11 are taken by the game itself).</p>
+        <h3>Auto-stop</h3>
+        <div class="row">
+          <label class="f"><span class="lab">After minutes (blank = none)</span>
+            <input id="ck-max-minutes" type="number" min="1" max="10080" step="1" value="360"></label>
+          <label class="f"><span class="lab">After clicks (blank = none)</span>
+            <input id="ck-max-clicks" type="number" min="1" step="1"></label>
+        </div>
+        <h3>Your computer</h3>
+        <label class="f"><span class="lab">Show commands for</span>
+          <select id="ck-os">
+            <option value="windows">Windows</option>
+            <option value="mac">macOS</option>
+            <option value="linux">Linux (X11)</option>
+          </select></label>
+        <p class="msg-err" id="ck-msg" hidden></p>
+      </div>
+      <div class="card">
+        <h2>Why this runs outside the page</h2>
+        <p class="assume" style="margin:0">A web page cannot press mouse buttons in another
+          program — browsers sandbox that on purpose. It's also exactly why "online
+          autoclicker" sites are either fake or ask you to run a download you can't
+          inspect.</p>
+        <p class="assume">So the clicker itself is a short Python script kept in this
+          repository at <b>tools/autoclicker/autoclicker.py</b>: small enough to read
+          before you run it, fully offline, no admin rights, no installer. This tab
+          only checks your settings and writes the command line for it.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card" aria-live="polite">
+        <h2>Session math</h2>
+        <div id="ck-stats-out"></div>
+      </div>
+      <div class="card" aria-live="polite">
+        <h2>Run it locally</h2>
+        <ul class="hints" id="ck-steps"></ul>
+        <label class="f" style="margin-top:14px"><span class="lab">Command (run from the minecraft_calc folder)</span>
+          <textarea id="ck-cmd" readonly rows="3" aria-label="Generated autoclicker command" style="min-height:72px"></textarea></label>
+        <button class="btn" id="ck-copy" type="button">Copy command</button>
+        <p class="msg-ok" id="ck-copy-ok" hidden></p>
+        <p class="msg-err" id="ck-copy-err" hidden></p>
+      </div>
+      <div class="card">
+        <h2>Fair play &amp; safety</h2>
+        <ul class="hints">
+          <li>The script starts <b>paused</b> and never clicks until you press the
+            toggle key; the quit key or Ctrl+C in its terminal stops it dead.</li>
+          <li>Clicks land in whichever window has focus, at the current cursor
+            position — keep Minecraft focused while it runs, and set an auto-stop
+            if you'll be away long.</li>
+          <li>Many multiplayer servers ban autoclickers and AFK devices. Use it in
+            singleplayer, on your own Realm, or where the rules explicitly allow
+            it — checking is on you.</li>
+          <li>Deliberately plain: fixed pace, no randomized "humanizing" jitter, no
+            window targeting, no game hooks — it is a metronome for your mouse,
+            nothing more.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
 </main>
 
 <footer>
-  <span>Anvil: enchant-combining only (repairs &amp; renames out of scope) · Brewing: durations shown are display-only flavor · Library &amp; Characters: saved locally in this browser only, nothing leaves your device · Characters can be exported to / imported from a JSON file.</span>
+  <span>Anvil: enchant-combining only (repairs &amp; renames out of scope) · Brewing: durations shown are display-only flavor · Library &amp; Characters: saved locally in this browser only, nothing leaves your device · Characters can be exported to / imported from a JSON file · AFK Clicker: this page only writes a command line — clicking is done by the companion script in tools/autoclicker, run locally by you.</span>
   <span id="test-badge">self-tests: pending…</span>
   <span style="flex-basis:100%">Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft. Item icons are Minecraft textures used for identification only.</span>
 </footer>
@@ -1609,9 +1702,137 @@ const CharacterEngine = (() => {
 })();
 
 /* =====================================================================
- *  SELF-TESTS — §5: run ALL FIVE suites, console.table all results.
+ *  CLICKER ENGINE — independent pure-function namespace.
+ *  Settings validation, session math, and command-line generation for
+ *  the companion autoclicker script at tools/autoclicker/autoclicker.py.
+ *  The page itself never sends a click — browsers cannot (and should
+ *  not) inject input into other applications, so this engine's whole
+ *  job is preparing an honest, auditable command for the local script.
+ *  DEFAULTS and LIMITS must stay in sync with that script's argparse
+ *  defaults and bounds — the K self-tests pin this side of the pair.
+ * ===================================================================== */
+const ClickerEngine = (() => {
+  const LIMITS = {minIntervalMs:100, maxIntervalMs:3600000, maxMinutes:10080};
+  const BUTTONS = ['left', 'right', 'middle'];
+  // Vanilla Java Edition already binds F1 (hide GUI), F2 (screenshot),
+  // F3 (debug), F5 (perspective), and F11 (fullscreen) — only unbound
+  // F-keys are offered here, plus Esc as a quit-key choice. The script
+  // accepts more via --toggle-key/--quit-key for power users.
+  const TOGGLE_KEYS = ['f6', 'f7', 'f8', 'f9', 'f10'];
+  const QUIT_KEYS = ['esc', 'f6', 'f7', 'f8', 'f9', 'f10'];
+  const OSES = ['windows', 'mac', 'linux'];
+
+  // maxClicks/maxMinutes: null means "no limit" (the script's 0). The
+  // 360-minute default is a deliberate safety net for walking away —
+  // clear the field for an open-ended session.
+  const DEFAULTS = Object.freeze({intervalMs:1200, button:'right',
+    toggleKey:'f6', quitKey:'f7', maxClicks:null, maxMinutes:360});
+
+  const PRESETS = [
+    {id:'fish', name:'AFK fish farm — right click every 1,200 ms',
+     intervalMs:1200, button:'right'},
+    {id:'custom', name:'Custom', intervalMs:null, button:null},
+  ];
+
+  /** '' / null / undefined → null; integer number or numeric string →
+      that integer; anything else → NaN. UI inputs arrive as strings. */
+  function toInt(v){
+    if (v === null || v === undefined || String(v).trim() === '') return null;
+    const n = typeof v === 'number' ? v : Number(String(v).trim());
+    return Number.isFinite(n) && Math.floor(n) === n ? n : NaN;
+  }
+
+  /**
+   * Validates raw settings (numbers or form strings). Returns
+   * {ok:true, errors:[], config} with a normalized config, or
+   * {ok:false, errors} with every problem listed and no config at all.
+   */
+  function validate(raw = {}){
+    const errors = [];
+    const pick = key => raw[key] === undefined ? DEFAULTS[key] : raw[key];
+
+    const intervalMs = toInt(pick('intervalMs'));
+    if (intervalMs === null || Number.isNaN(intervalMs))
+      errors.push('Interval must be a whole number of milliseconds.');
+    else if (intervalMs < LIMITS.minIntervalMs || intervalMs > LIMITS.maxIntervalMs)
+      errors.push('Interval must be between 100 and 3,600,000 ms (0.1 s to 1 hour).');
+
+    const button = pick('button');
+    if (!BUTTONS.includes(button)) errors.push('Unknown mouse button.');
+
+    const toggleKey = pick('toggleKey'), quitKey = pick('quitKey');
+    if (!TOGGLE_KEYS.includes(toggleKey))
+      errors.push('Toggle key must be one of F6–F10 (Minecraft already binds F1, F2, F3, F5, and F11).');
+    if (!QUIT_KEYS.includes(quitKey))
+      errors.push('Quit key must be Esc or one of F6–F10.');
+    if (toggleKey === quitKey)
+      errors.push('Toggle and quit keys must be different.');
+
+    let maxClicks = toInt(pick('maxClicks'));
+    if (Number.isNaN(maxClicks) || (maxClicks !== null && maxClicks < 1 && maxClicks !== 0))
+      errors.push('Max clicks must be a whole number of at least 1, or blank for no limit.');
+    else if (maxClicks === 0) maxClicks = null;      // the script's 0 = off
+
+    let maxMinutes = toInt(pick('maxMinutes'));
+    if (Number.isNaN(maxMinutes) || (maxMinutes !== null && maxMinutes !== 0 &&
+        (maxMinutes < 1 || maxMinutes > LIMITS.maxMinutes)))
+      errors.push('Max minutes must be between 1 and 10,080 (one week), or blank for no limit.');
+    else if (maxMinutes === 0) maxMinutes = null;
+
+    if (errors.length) return {ok:false, errors};
+    return {ok:true, errors:[],
+      config:{intervalMs, button, toggleKey, quitKey, maxClicks, maxMinutes}};
+  }
+
+  /**
+   * Pure arithmetic on a validated config — click pacing and, when an
+   * auto-stop limit is set, which limit trips first and when. Clicks
+   * are just clicks: no fish-per-hour guesses are made here.
+   */
+  function stats(config){
+    const ms = config.intervalMs;
+    const intervalSeconds = ms / 1000;
+    const perMinute = Math.round((60000 / ms) * 10) / 10;
+    const perHour = Math.round(3600000 / ms);
+    const byClicks = config.maxClicks !== null ? config.maxClicks * ms : Infinity;
+    const byMinutes = config.maxMinutes !== null ? config.maxMinutes * 60000 : Infinity;
+    const stopMs = Math.min(byClicks, byMinutes);
+    const autoStop = stopMs === Infinity ? null : {
+      limitedBy: byClicks <= byMinutes ? 'clicks' : 'minutes',
+      clicks: Math.floor(stopMs / ms),
+      minutes: Math.round((stopMs / 60000) * 10) / 10,
+    };
+    return {intervalSeconds, perMinute, perHour, autoStop};
+  }
+
+  /** The exact command line for the companion script, assuming the
+      working directory is the repository root. */
+  function command(config, os = 'linux'){
+    const win = os === 'windows';
+    const parts = [
+      win ? 'py' : 'python3',
+      win ? 'tools\\autoclicker\\autoclicker.py' : 'tools/autoclicker/autoclicker.py',
+      '--interval-ms', String(config.intervalMs),
+      '--button', config.button,
+      '--toggle-key', config.toggleKey,
+      '--quit-key', config.quitKey,
+    ];
+    if (config.maxClicks !== null) parts.push('--max-clicks', String(config.maxClicks));
+    if (config.maxMinutes !== null) parts.push('--max-minutes', String(config.maxMinutes));
+    return parts.join(' ');
+  }
+
+  const installCommand = os =>
+    (os === 'windows' ? 'py' : 'python3') + ' -m pip install pynput';
+
+  return Object.freeze({LIMITS, BUTTONS, TOGGLE_KEYS, QUIT_KEYS, OSES,
+    DEFAULTS, PRESETS, validate, stats, command, installCommand});
+})();
+
+/* =====================================================================
+ *  SELF-TESTS — §5: run ALL SIX suites, console.table all results.
  *  Anvil T1–T5, Gear W1–W10, brewing B1–B5, library L1–L5 (§9),
- *  characters C1–C6.
+ *  characters C1–C6, clicker K1–K6.
  * ===================================================================== */
 function run_self_tests(){
   const rows = [];
@@ -1621,7 +1842,7 @@ function run_self_tests(){
       expected: JSON.stringify(expected), actual: JSON.stringify(actual)});
   };
   const A = AnvilEngine, B = BrewEngine, G = GearEngine, L = LibraryEngine,
-        C = CharacterEngine;
+        C = CharacterEngine, K = ClickerEngine;
 
   /* ---- anvil suite ---- */
   t('anvil', 'T1', 'prior-work penalty is 2^uses − 1',
@@ -1840,6 +2061,57 @@ function run_self_tests(){
     {merged:c6merged.map(p => p.name), replaced:c6replaced.map(p => p.name),
      kept:c6drop.profiles[0].items.length, dropped:c6drop.dropped.length},
     {merged:['Ranger v2','Miner','Alchemist'], replaced:['Ranger v2','Alchemist'], kept:1, dropped:1});
+
+  /* ---- clicker suite ---- */
+  const k1 = K.validate({});
+  t('clicker', 'K1', 'defaults validate: 1200 ms right-click, f6 toggle / f7 quit, 360-minute auto-stop',
+    {ok:k1.ok, config:k1.config},
+    {ok:true, config:{intervalMs:1200, button:'right', toggleKey:'f6', quitKey:'f7',
+                      maxClicks:null, maxMinutes:360}});
+
+  const k2 = K.validate({intervalMs:99, button:'side4', toggleKey:'f3', quitKey:'esc',
+                         maxClicks:'x', maxMinutes:20000});
+  const k2same = K.validate({toggleKey:'f7'});          // collides with the f7 quit default
+  t('clicker', 'K2', 'validate flags every bad field (F3 is Minecraft debug — refused), returns no config, and rejects toggle = quit',
+    {ok:k2.ok, errors:k2.errors.length, hasConfig:'config' in k2,
+     sameKeyRejected:!k2same.ok && k2same.errors.length === 1},
+    {ok:false, errors:5, hasConfig:false, sameKeyRejected:true});
+
+  const k3 = K.stats(K.validate({maxMinutes:''}).config);
+  t('clicker', 'K3', 'stats @ 1200 ms: 1.2 s between clicks, 50/minute, 3000/hour, no auto-stop when limits are blank',
+    k3, {intervalSeconds:1.2, perMinute:50, perHour:3000, autoStop:null});
+
+  const k4a = K.stats(K.validate({maxClicks:3000, maxMinutes:''}).config).autoStop;
+  const k4b = K.stats(K.validate({maxMinutes:30}).config).autoStop;
+  const k4c = K.stats(K.validate({maxClicks:3000, maxMinutes:30}).config).autoStop;
+  t('clicker', 'K4', 'auto-stop math: 3000 clicks → 60 min; 30 min → 1500 clicks; both set → the earlier limit wins',
+    {a:k4a, b:k4b, c:k4c},
+    {a:{limitedBy:'clicks', clicks:3000, minutes:60},
+     b:{limitedBy:'minutes', clicks:1500, minutes:30},
+     c:{limitedBy:'minutes', clicks:1500, minutes:30}});
+
+  const k5cfg = K.validate({}).config;
+  t('clicker', 'K5', 'command lines: python3 + forward slashes on Linux (macOS identical), py + backslashes on Windows, matching pip installs',
+    {linux:K.command(k5cfg, 'linux'), windows:K.command(k5cfg, 'windows'),
+     macMatchesLinux:K.command(k5cfg, 'mac') === K.command(k5cfg, 'linux'),
+     pipLinux:K.installCommand('linux'), pipWindows:K.installCommand('windows')},
+    {linux:'python3 tools/autoclicker/autoclicker.py --interval-ms 1200 --button right --toggle-key f6 --quit-key f7 --max-minutes 360',
+     windows:'py tools\\autoclicker\\autoclicker.py --interval-ms 1200 --button right --toggle-key f6 --quit-key f7 --max-minutes 360',
+     macMatchesLinux:true,
+     pipLinux:'python3 -m pip install pynput', pipWindows:'py -m pip install pynput'});
+
+  const kFish = K.PRESETS.find(p => p.id === 'fish');
+  const k6 = K.validate({intervalMs:kFish.intervalMs, button:kFish.button,
+                         maxClicks:250, maxMinutes:''}).config;
+  const k6cmd = K.command(k6, 'linux');
+  const k6bare = K.command(K.validate({maxClicks:0, maxMinutes:''}).config, 'linux');
+  t('clicker', 'K6', 'fish preset round-trips through validate; --max-* flags appear only when a limit is set',
+    {intervalMs:k6.intervalMs, button:k6.button,
+     maxClicksFlag:k6cmd.includes('--max-clicks 250'),
+     maxMinutesOmitted:!k6cmd.includes('--max-minutes'),
+     bareHasNoMaxFlags:!k6bare.includes('--max-')},
+    {intervalMs:1200, button:'right', maxClicksFlag:true,
+     maxMinutesOmitted:true, bareHasNoMaxFlags:true});
 
   console.table(rows);
   const failed = rows.filter(r => r.pass !== 'PASS');
@@ -3032,6 +3304,136 @@ function bootCharacters(){
   render();
 }
 
+/* ----------------------------- CLICKER UI ----------------------------- */
+function bootClicker(){
+  const K = ClickerEngine;
+
+  const preset = $('#ck-preset'), interval = $('#ck-interval'), button = $('#ck-button'),
+        toggle = $('#ck-toggle'), quit = $('#ck-quit'),
+        maxMin = $('#ck-max-minutes'), maxClk = $('#ck-max-clicks'),
+        osSel = $('#ck-os'), msg = $('#ck-msg'),
+        cmdOut = $('#ck-cmd'), copyBtn = $('#ck-copy'),
+        copyOk = $('#ck-copy-ok'), copyErr = $('#ck-copy-err');
+
+  const keyLabel = k => k === 'esc' ? 'Esc' : k.toUpperCase();
+  K.PRESETS.forEach(p => preset.append(el('option', {value:p.id, text:p.name})));
+  K.TOGGLE_KEYS.forEach(k => toggle.append(el('option', {value:k, text:keyLabel(k)})));
+  K.QUIT_KEYS.forEach(k => quit.append(el('option', {value:k, text:keyLabel(k)})));
+  toggle.value = K.DEFAULTS.toggleKey;
+  quit.value = K.DEFAULTS.quitKey;
+
+  // Best-effort platform guess for the command variant — just a select default.
+  const plat = ((navigator.platform || '') + ' ' + (navigator.userAgent || '')).toLowerCase();
+  osSel.value = /mac|iphone|ipad/.test(plat) ? 'mac' : /win/.test(plat) ? 'windows' : 'linux';
+
+  function showMsg(node, text){ node.textContent = text; node.hidden = false; }
+  function clearMsg(node){ node.hidden = true; node.textContent = ''; }
+
+  const rawSettings = () => ({intervalMs:interval.value, button:button.value,
+    toggleKey:toggle.value, quitKey:quit.value,
+    maxClicks:maxClk.value, maxMinutes:maxMin.value});
+
+  /** Keeps the preset select honest: shows a preset's name only while
+      the form actually matches it. */
+  function syncPreset(){
+    const match = K.PRESETS.find(p => p.intervalMs !== null &&
+      String(p.intervalMs) === String(interval.value).trim() && p.button === button.value);
+    preset.value = match ? match.id : 'custom';
+  }
+
+  function renderStats(st){
+    const out = $('#ck-stats-out');
+    out.textContent = '';
+    if (!st){
+      out.append(el('p', {class:'empty', text:'Fix the settings on the left to see the session math.'}));
+      return;
+    }
+    out.append(el('div', {class:'tiles'},
+      tile(String(st.intervalSeconds), 'seconds between clicks'),
+      tile(String(st.perMinute), 'clicks / minute'),
+      tile(st.perHour.toLocaleString('en-US'), 'clicks / hour'),
+      st.autoStop
+        ? tile(fmtTime(Math.round(st.autoStop.minutes * 60)),
+               `auto-stop (${st.autoStop.limitedBy} limit · ${st.autoStop.clicks.toLocaleString('en-US')} clicks)`)
+        : tile('—', 'auto-stop (none set)')));
+    out.append(el('p', {class:'assume',
+      text:'Clicks, not catches — a full fishing cycle is two right clicks (reel in, cast back out).'}));
+  }
+
+  function renderSteps(config){
+    const steps = $('#ck-steps');
+    const os = osSel.value;
+    steps.textContent = '';
+    const li = (...kids) => steps.append(el('li', {}, ...kids));
+    li('1 · Install Python 3 — ', {
+      windows:'from python.org; the "py" launcher used below comes with it.',
+      mac:'macOS no longer ships it: use python.org or Homebrew.',
+      linux:'almost certainly already installed (check with python3 --version).',
+    }[os]);
+    li('2 · Install the script’s one dependency: ', el('b', {text:K.installCommand(os)}),
+       ' — pynput sends the clicks and listens for the hotkeys.');
+    li('3 · Run the command below from your minecraft_calc folder, in a terminal you leave open.');
+    if (os === 'mac')
+      li('4 · First run: macOS will ask you to give your terminal Accessibility permission (System Settings → Privacy & Security → Accessibility) — that is the OS gate on synthetic clicks.');
+    else if (os === 'linux')
+      li('4 · Needs an X11/Xorg session — most Wayland sessions block synthetic input by design, so if nothing clicks, log in with X11.');
+    else
+      li('4 · No special permissions needed — but if Minecraft runs as administrator, the terminal must too, or Windows silently drops the clicks.');
+    li('5 · Focus Minecraft, line up your cast, then press ',
+       el('b', {text:keyLabel(config.toggleKey)}), ' to start/stop — ',
+       el('b', {text:keyLabel(config.quitKey)}), ' or Ctrl+C in the terminal quits.');
+  }
+
+  function copyToClipboard(text){
+    if (navigator.clipboard && navigator.clipboard.writeText)
+      return navigator.clipboard.writeText(text);
+    return new Promise((resolve, reject) => {
+      try {
+        cmdOut.focus(); cmdOut.select();
+        if (document.execCommand('copy')) resolve(); else reject(new Error('execCommand failed'));
+      } catch (e){ reject(e); }
+    });
+  }
+
+  function render(){
+    syncPreset();
+    clearMsg(copyOk); clearMsg(copyErr);
+    const r = K.validate(rawSettings());
+    if (!r.ok){
+      showMsg(msg, r.errors.join(' '));
+      renderStats(null);
+      $('#ck-steps').textContent = '';
+      cmdOut.value = '';
+      copyBtn.disabled = true;
+      return;
+    }
+    clearMsg(msg);
+    copyBtn.disabled = false;
+    renderStats(K.stats(r.config));
+    renderSteps(r.config);
+    cmdOut.value = K.command(r.config, osSel.value);
+  }
+
+  preset.addEventListener('change', () => {
+    const p = K.PRESETS.find(q => q.id === preset.value);
+    if (p && p.intervalMs !== null){
+      interval.value = String(p.intervalMs);
+      button.value = p.button;
+    }
+    render();
+  });
+  [interval, maxMin, maxClk].forEach(n => n.addEventListener('input', render));
+  [button, toggle, quit, osSel].forEach(n => n.addEventListener('change', render));
+  copyBtn.addEventListener('click', () => {
+    clearMsg(copyOk); clearMsg(copyErr);
+    copyToClipboard(cmdOut.value)
+      .then(() => showMsg(copyOk, 'Copied — paste it into a terminal in the minecraft_calc folder.'))
+      .catch(() => showMsg(copyErr, 'Clipboard blocked — select the command text and copy it manually.'));
+  });
+
+  render();
+}
+
 /* ------------------------------- TABS -------------------------------- */
 function bootTabs(){
   const tabs = [...document.querySelectorAll('[role=tab]')];
@@ -3061,7 +3463,7 @@ function bootTabs(){
 /* ------------------------------- BOOT -------------------------------- */
 if (HAS_DOM){
   const boot = () => {
-    bootTabs(); bootAnvil(); bootBrew(); bootLibrary(); bootCharacters();
+    bootTabs(); bootAnvil(); bootBrew(); bootLibrary(); bootCharacters(); bootClicker();
     const rows = run_self_tests();
     const failed = rows.filter(r => r.pass !== 'PASS').length;
     const badge = document.getElementById('test-badge');
@@ -3077,7 +3479,7 @@ if (HAS_DOM){
 
 /* Node/test harness export — engines are DOM-free by construction. */
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = {AnvilEngine, BrewEngine, GearEngine, LibraryEngine, CharacterEngine, run_self_tests};
+  module.exports = {AnvilEngine, BrewEngine, GearEngine, LibraryEngine, CharacterEngine, ClickerEngine, run_self_tests};
 </script>
 </body>
 </html>
