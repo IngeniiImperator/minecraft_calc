@@ -1,12 +1,18 @@
 # Minecraft Calc
 
-Four Minecraft **Java Edition 1.21.x** planning tools — an **Anvil
-Combiner**, a **Brewing Planner**, a **Book Library & Merge Planner**, and
-**Character Profiles** with import/export — bundled into one self-contained
-HTML file. No build step, no install, no server, no network calls, no
-dependencies: open `index.html` in a browser and it works.
+Five Minecraft **Java Edition 1.21.x** planning tools — an **Anvil
+Combiner**, a **Brewing Planner**, a **Book Library & Merge Planner**,
+**Character Profiles** with import/export, and an **AFK Clicker**
+configurator — bundled into one self-contained HTML file. No build step,
+no install, no server, no network calls, no dependencies: open
+`index.html` in a browser and it works.
 
-*Java Edition 1.21.x · zero dependencies · single HTML file · 31 automated
+The one thing a web page can't do is click a mouse for you, so the AFK
+Clicker tab pairs with an optional **companion autoclicker script**
+(`tools/autoclicker/`) that you run locally — a short, auditable Python
+file, documented in [its own README](tools/autoclicker/README.md).
+
+*Java Edition 1.21.x · zero dependencies · single HTML file · 37 automated
 self-tests · works fully offline*
 
 Not an official Minecraft product. Not approved by or associated with
@@ -21,6 +27,7 @@ Mojang or Microsoft.
   - [Brewing Planner](#brewing-planner)
   - [Book Library & Merge Planner](#book-library--merge-planner)
   - [Character Profiles](#character-profiles)
+  - [AFK Clicker](#afk-clicker)
 - [How the Numbers Work](#how-the-numbers-work)
 - [Scope and Non-Goals](#scope-and-non-goals)
 - [Architecture](#architecture)
@@ -38,11 +45,11 @@ tools for players who want to work out the cheapest anvil combine order, a
 full brewing shopping list, which enchanted books to save for later, or
 which of their five near-identical axes was the Fortune build, *before*
 spending XP levels, brewing-stand time, or storage space in game.
-All four tools live in a single HTML file with all logic, styling, and
+All five tools live in a single HTML file with all logic, styling, and
 even icon assets embedded inline — there is nothing to install and nothing
 is ever sent over the network.
 
-The four modules are switched with a tab bar at the top of the page and
+The five modules are switched with a tab bar at the top of the page and
 are otherwise unrelated: they share only a CSS theme and a handful of
 generic DOM helpers. The Anvil Combiner and Brewing Planner are
 single-session calculators with no persistence; the Book Library and
@@ -51,7 +58,10 @@ Character Profiles modules save their data (to the browser's
 reload, and Character Profiles can additionally be exported to and
 imported from a plain JSON file — see
 [Book Library & Merge Planner](#book-library--merge-planner) and
-[Character Profiles](#character-profiles).
+[Character Profiles](#character-profiles). The AFK Clicker tab is a
+configurator for the companion autoclicker script and, like the first
+two, keeps no state — the page itself never sends a click; see
+[AFK Clicker](#afk-clicker).
 
 ## Quick Start
 
@@ -366,11 +376,69 @@ already-described item — and deleted individually.
   ids, names, notes, enchantments, custom stats, equipped slots — round-
   trips losslessly (covered by self-test C4).
 
+### AFK Clicker
+
+A configurator for the **companion autoclicker script** at
+`tools/autoclicker/autoclicker.py`, aimed at click-based AFK farms —
+fish farms above all, where the commonly recommended setup is a right
+click every ~1,200 ms. Full script documentation lives in
+[tools/autoclicker/README.md](tools/autoclicker/README.md).
+
+**Why a companion script at all?** A web page cannot press mouse
+buttons in another program — browsers sandbox that on purpose, which is
+also why "online autoclicker" sites are either fake or ask you to run
+an unauditable download. Minecraft Calc's answer is a short Python
+script kept in this repository where you can read every line before
+running it: fully offline, no admin rights, no installer, one
+dependency (`pynput`). The tab prepares its command line; the clicking
+only ever happens in a terminal you launched yourself.
+
+**Inputs**
+
+- **Preset** — *AFK fish farm* (right click every 1,200 ms) or
+  *Custom*. Editing the interval or button flips the select back to
+  Custom automatically, so the preset name never lies about the form.
+- **Interval** between clicks, 100–3,600,000 ms.
+- **Mouse button** — right (use item / cast a rod, the fishing
+  default), left, or middle.
+- **Toggle and quit keys** — only keys vanilla Minecraft leaves unbound
+  are offered (F6–F10, plus Esc as a quit choice; the game itself binds
+  F1, F2, F3, F5, and F11). The two must differ, and defaults are
+  F6/F7.
+- **Auto-stop** limits — after N minutes (prefilled with a 360-minute
+  safety net; blank it for an open-ended session) and/or after N
+  clicks.
+- **Your OS** — Windows, macOS, or Linux, preselected by a best-effort
+  platform guess; it switches the generated commands between
+  `py`/backslashes and `python3`/forward slashes.
+
+**Output**
+
+- **Session math** tiles: seconds between clicks, clicks per minute,
+  clicks per hour, and — when a limit is set — which limit trips first
+  and when (e.g. 3,000 clicks and 30 minutes at 1,200 ms → the
+  30-minute limit wins, at 1,500 clicks). Clicks are just clicks: a
+  full fishing cycle is two right clicks (reel in, cast out), and the
+  tab makes no fish-per-hour guesses.
+- **Setup steps** tailored to the chosen OS — install hints, the exact
+  `pip` command, and the platform's synthetic-input gate (macOS
+  Accessibility permission, Linux X11-not-Wayland, Windows
+  administrator parity with the game).
+- The **generated command line**, with a copy-to-clipboard button.
+  Invalid settings produce a specific error list instead of a command.
+
+The script itself starts paused, toggles with a global hotkey, prints
+every state change with a running click count, and stops from the quit
+key, Ctrl+C, or either auto-stop limit. It has no game integration, no
+window targeting, and no randomized "humanizing" jitter — a deliberate
+scope statement, not a missing feature (see
+[Scope and Non-Goals](#scope-and-non-goals)).
+
 ## How the Numbers Work
 
-A quick-reference table of the constants driving the anvil and brewing
-engines (the Book Library and Character Profiles modules have no fixed
-game constants — see their sections above):
+A quick-reference table of the constants driving the anvil, brewing, and
+clicker engines (the Book Library and Character Profiles modules have no
+fixed game constants — see their sections above):
 
 | Constant | Value | Meaning |
 | --- | --- | --- |
@@ -384,6 +452,9 @@ game constants — see their sections above):
 | Enchantments modeled | 42 | All usable in the Anvil Combiner; 15 also affect gear stats (2 folded into headline tiles, 13 shown as separate lines) |
 | Potion effects modeled | 19 | 16 direct + 3 corruption-only |
 | Item types | 18 | 17 wearable/wieldable items + the enchanted book carrier |
+| Fish-farm click interval | 1,200 ms | The AFK Clicker preset and script default (≈50 clicks/minute) |
+| Clicker interval bounds | 100–3,600,000 ms | Accepted range, enforced identically by `ClickerEngine` and the script |
+| Default auto-stop | 360 minutes | Prefilled safety net in the AFK Clicker tab; blank = no limit |
 
 ## Scope and Non-Goals
 
@@ -422,16 +493,29 @@ game constants — see their sections above):
   tagging/categories, and cloud sync are flagged in the feature request
   as future enhancements and are not implemented; the versioned export
   format is the groundwork for them.
+- **The web page never sends input events.** The AFK Clicker tab only
+  validates settings and writes a command line; every actual click comes
+  from the companion script, run locally and deliberately kept apart
+  from the app.
+- The companion autoclicker is **a metronome, not a bot**: fixed pacing
+  only, one button, no window targeting, no game/memory integration, no
+  randomized "humanizing" jitter or other detection tricks, and no way
+  to start clicking without a human pressing the toggle key. Whether
+  automation is allowed on a given multiplayer server is the player's
+  responsibility to check.
 - One fixed dark visual theme; there is no light-mode toggle.
 
 ## Architecture
 
 The entire application is one file: `index.html` contains the markup,
-CSS, JavaScript engines, UI code, and self-tests. `README.md` is the only
-other file in the repository — there is no build config, package
-manifest, or CI pipeline, by design.
+CSS, JavaScript engines, UI code, and self-tests. Beyond it, the
+repository holds only this README and the standalone companion
+autoclicker under `tools/autoclicker/` (script, unit tests, and its own
+README) — there is still no build config, package manifest, or CI
+pipeline, by design, and `index.html` neither loads nor requires
+anything from `tools/`.
 
-The JavaScript is organized into five independent, pure-function "engine"
+The JavaScript is organized into six independent, pure-function "engine"
 namespaces, each an IIFE that returns a frozen object of functions and
 constants:
 
@@ -461,15 +545,24 @@ constants:
   downloads, the file picker, clipboard-friendly JSON display — lives in
   the UI layer (`bootCharacters()`); the engine only produces and
   validates plain objects.
+- **`ClickerEngine`** — settings validation (`validate`), session
+  arithmetic (`stats`), and command-line generation (`command`/
+  `installCommand`) for the companion autoclicker script. It touches no
+  other engine at all; its one external contract is that `DEFAULTS` and
+  `LIMITS` mirror the script's argparse defaults and bounds — a
+  deliberate duplication (the alternative would be the page reading
+  `tools/`, breaking the single-file rule), pinned on this side by the
+  K self-tests and flagged by comments in both files.
 
-Each engine is DOM-free by construction — none of the five ever
+Each engine is DOM-free by construction — none of the six ever
 references `document` or `window` — and `Object.freeze()`-d, so it only
 exposes its intended public surface. A separate `HAS_DOM` check, defined
-after all five engines, gates the DOM-touching UI layer instead. A small
+after all six engines, gates the DOM-touching UI layer instead. A small
 shared UI layer (`el()`, `$()`, `tile()`, `stateChip()`, and similar
 helpers) renders every module's DOM purely from those engines' return
 values; a `bootTabs()` / `bootAnvil()` / `bootBrew()` / `bootLibrary()` /
-`bootCharacters()` sequence wires everything up on `DOMContentLoaded`.
+`bootCharacters()` / `bootClicker()` sequence wires everything up on
+`DOMContentLoaded`.
 
 `bootLibrary()` and `bootCharacters()` are the two boot functions that
 talk to browser storage: each loads its state from its own `localStorage`
@@ -490,7 +583,7 @@ At the bottom of the script:
 
 ```js
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = {AnvilEngine, BrewEngine, GearEngine, LibraryEngine, CharacterEngine, run_self_tests};
+  module.exports = {AnvilEngine, BrewEngine, GearEngine, LibraryEngine, CharacterEngine, ClickerEngine, run_self_tests};
 ```
 
 This is what lets the engines run headlessly under Node for testing, with
@@ -498,24 +591,28 @@ no change to the browser code path.
 
 ## Testing
 
-`run_self_tests()` runs **31 assertions** across all five engines: 5
+`run_self_tests()` runs **37 assertions** across all six engines: 5
 anvil cases (T1–T5), 10 gear-stats cases (W1–W10), 5 brewing cases
-(B1–B5), 5 library cases (L1–L5), and 6 character cases (C1–C6) —
-covering things like the prior-work-penalty formula, the 40-level cap,
-the optimizer beating a naive sequential combine order, correct stat
-folding vs. separate conditional lines, corruption-effect routing, the
-mutually-exclusive Potency/Extended validation error, batch sizes that
-don't divide evenly into brew cycles, catalog filtering by
-enchantment/level and by compatible-equipment set, merge plans reserving
-and releasing books, a manual Used status overriding automatic
-reservation, upgrade-project completion percentages, two same-type items
-keeping separate identities, equipment-slot rules and displacement, a
-lossless export → import round-trip, rejection of malformed or
-wrong-version import files, and merge-vs-replace import semantics.
+(B1–B5), 5 library cases (L1–L5), 6 character cases (C1–C6), and 6
+clicker cases (K1–K6) — covering things like the prior-work-penalty
+formula, the 40-level cap, the optimizer beating a naive sequential
+combine order, correct stat folding vs. separate conditional lines,
+corruption-effect routing, the mutually-exclusive Potency/Extended
+validation error, batch sizes that don't divide evenly into brew cycles,
+catalog filtering by enchantment/level and by compatible-equipment set,
+merge plans reserving and releasing books, a manual Used status
+overriding automatic reservation, upgrade-project completion
+percentages, two same-type items keeping separate identities,
+equipment-slot rules and displacement, a lossless export → import
+round-trip, rejection of malformed or wrong-version import files,
+merge-vs-replace import semantics, the clicker defaults matching the
+companion script (1,200 ms right click, F6/F7), rejection of
+Minecraft-bound hotkeys and colliding toggle/quit keys, click-pacing and
+auto-stop arithmetic, and exact per-OS command-line generation.
 
 The suite runs automatically the moment the page loads: results are
 printed with `console.table()`, and the footer shows a live pass/fail
-badge (e.g. *"self-tests: 31/31 passing (see console.table)"*).
+badge (e.g. *"self-tests: 37/37 passing (see console.table)"*).
 
 It can also run headlessly with only Node.js — no browser, no
 dependencies:
@@ -535,6 +632,14 @@ makes this a natural fit for a CI check — none is currently wired up in
 this repository. If you add or change a mechanic, add a matching
 `t(...)` case to the relevant suite in `run_self_tests()` and confirm the
 badge (or the command above) still shows everything passing.
+
+The companion autoclicker has its own unit tests (Python standard
+library only — no `pynput`, display, or mouse needed, because the click
+loop takes its click function and clock as injected parameters):
+
+```sh
+python3 -m unittest discover tools/autoclicker
+```
 
 ## Accessibility and Browser Support
 
@@ -564,7 +669,12 @@ badge (or the command above) still shows everything passing.
 ```text
 minecraft_calc/
 ├── README.md    — this file
-└── index.html   — the entire application: markup, styles, engines, UI, and self-tests
+├── index.html   — the entire application: markup, styles, engines, UI, and self-tests
+└── tools/
+    └── autoclicker/           — optional local companion (not loaded by index.html)
+        ├── README.md          — setup, usage, per-OS notes, fair-play
+        ├── autoclicker.py     — the fixed-interval AFK clicker script
+        └── test_autoclicker.py — stdlib-only unit tests for it
 ```
 
 ## Contributing
@@ -584,8 +694,16 @@ minecraft_calc/
 - If you change the character-profile export schema, bump
   `CharacterEngine.VERSION` and keep `parseImport` able to read every
   older version — exported files are long-lived and must stay importable.
-- Keep the project dependency-free: no build tooling, no external
-  requests, and no added libraries or frameworks.
+- `ClickerEngine.DEFAULTS`/`LIMITS` and the argparse defaults/bounds in
+  `tools/autoclicker/autoclicker.py` are intentional mirrors — change
+  them together (comments in both files point at each other, and the K
+  self-tests pin the engine side). Keep the script's clicking confined
+  to `main()` so its logic stays testable without `pynput`, and run
+  both test suites after touching either side.
+- Keep the app dependency-free: no build tooling, no external requests,
+  and no added libraries or frameworks in `index.html`. The companion
+  script's only dependency stays `pynput` — and it, too, must never
+  make a network request.
 
 ## Attribution
 
